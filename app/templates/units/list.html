@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}
+Units
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+
+    <h2>Units</h2>
+
+    <a href="/units/add"
+       class="btn btn-primary">
+
+        Add Unit
+
+    </a>
+
+</div>
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <table class="table table-hover">
+
+            <thead>
+
+                <tr>
+
+                    <th>Code</th>
+
+                    <th>Name</th>
+
+                    <th>Phone</th>
+
+                    <th>Email</th>
+
+                    <th>Status</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for unit in units %}
+
+                <tr>
+
+                    <td>{{ unit.code }}</td>
+
+                    <td>{{ unit.name }}</td>
+
+                    <td>{{ unit.phone }}</td>
+
+                    <td>{{ unit.email }}</td>
+
+                    <td>
+
+                        {% if unit.status %}
+
+                            Active
+
+                        {% else %}
+
+                            Inactive
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

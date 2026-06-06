@@ -1,3 +1,28 @@
+Phase 1 Goal
+
+
+MySQL database auto-created if it doesn't exist
+Tables auto-created
+Super Admin auto-created if none exists
+Login page
+Dashboard page
+Flask-Login authentication
+Modular structure ready for Attendance, GPS Tracking, Leave Management, etc.
+
+Username: superadmin
+Password: Admin@123
+
+
+
+
+
+
+
+
+
+
+
+
 Core Features
 1. User Authentication
 Login with username/email and password
@@ -112,3 +137,31 @@ For field staff:
 
 Periodic GPS updates every 5–15 minutes
 Route history on map
+
+Future Modules Under WorkForce
+
+Phase 1 – Attendance
+User Management
+Clock In/Out
+GPS Location Verification
+Attendance Reports
+Geofencing
+Phase 2 – Leave Management
+Annual Leave
+Sick Leave
+Casual Leave
+Leave Approval Workflow
+Phase 3 – Field Staff Management
+Live Location Tracking
+Route History
+Site Visits
+Supervisor Monitoring
+Phase 4 – HR Management
+Staff Records
+Departments
+Designations
+Employment History
+Phase 5 – Payroll Integration
+Attendance-Based Payroll
+Overtime Calculation
+Monthly Reports
