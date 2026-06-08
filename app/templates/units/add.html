@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}
+Add Unit
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-header">
+
+        Add Unit
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="POST">
+
+            <div class="row">
+
+                <div class="col-md-4">
+
+                    <label>Code</label>
+
+                    <input
+                        type="text"
+                        name="code"
+                        class="form-control"
+                        required>
+
+                </div>
+
+                <div class="col-md-8">
+
+                    <label>Name</label>
+
+                    <input
+                        type="text"
+                        name="name"
+                        class="form-control"
+                        required>
+
+                </div>
+
+            </div>
+
+            <br>
+
+            <label>Address</label>
+
+            <textarea
+                name="address"
+                class="form-control"></textarea>
+
+            <br>
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    <label>Phone</label>
+
+                    <input
+                        type="text"
+                        name="phone"
+                        class="form-control">
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <label>Email</label>
+
+                    <input
+                        type="email"
+                        name="email"
+                        class="form-control">
+
+                </div>
+
+            </div>
+
+            <br>
+
+            <button
+                type="submit"
+                class="btn btn-success">
+
+                Save Unit
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

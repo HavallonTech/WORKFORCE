@@ -65,7 +65,19 @@ class User(UserMixin, db.Model):
         db.DateTime,
         default=db.func.current_timestamp()
     )
-
+    last_login = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+    must_change_password = db.Column(
+        db.Boolean,
+        default=True
+    )
+    attendances = db.relationship(
+        "Attendance",
+        backref="user",
+        lazy=True
+    )
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -74,6 +86,7 @@ class User(UserMixin, db.Model):
             self.password_hash,
             password
         )
+    
     
 class Unit(db.Model):
 
@@ -111,6 +124,27 @@ class Unit(db.Model):
         db.DateTime,
         default=db.func.current_timestamp()
     )
+    locations = db.relationship(
+        "UnitLocation",
+        backref="unit",
+        lazy=True
+    )
+    departments = db.relationship(
+        "Department",
+        backref="unit",
+        lazy=True
+    )
+    users = db.relationship(
+        "User",
+        backref="unit",
+        lazy=True
+    )
+    attendances = db.relationship(
+        "Attendance",
+        backref="unit",
+        lazy=True
+    )
+    
 
 
 class UnitLocation(db.Model):
@@ -131,6 +165,22 @@ class UnitLocation(db.Model):
     longitude = db.Column(db.Float)
 
     radius = db.Column(db.Integer, default=100)
+    status = db.Column(
+        db.Boolean,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp()
+    )
+    attendances = db.relationship(
+        "Attendance",
+        backref="location",
+        lazy=True
+    )
+        
+    
 
 class Department(db.Model):
 
@@ -149,6 +199,20 @@ class Department(db.Model):
 
     description = db.Column(
         db.Text
+    )
+    status = db.Column(
+        db.Boolean,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp()
+    )
+    users = db.relationship(
+        "User",
+        backref="department",
+        lazy=True
     )
 
 class Attendance(db.Model):
@@ -178,3 +242,85 @@ class Attendance(db.Model):
     status = db.Column(db.String(20))
 
     attendance_date = db.Column(db.Date)
+    location_id = db.Column(
+        db.Integer,
+        db.ForeignKey("unit_locations.id"),
+        nullable=True
+    )
+
+    remarks = db.Column(
+        db.String(255),
+        nullable=True
+    )
+    created_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp()
+    )
+    check_in_photo = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    check_out_photo = db.Column(
+        db.String(255),
+        nullable=True
+    )
+    check_in_latitude = db.Column(
+        db.Float,
+        nullable=True
+    )
+
+    check_in_longitude = db.Column(
+        db.Float,
+        nullable=True
+    )
+
+    check_out_latitude = db.Column(
+        db.Float,
+        nullable=True
+    )
+
+    check_out_longitude = db.Column(
+        db.Float,
+        nullable=True
+    )
+    
+class AuditLog(db.Model):
+
+    __tablename__ = "audit_logs"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=True
+    )
+
+    username = db.Column(
+        db.String(100)
+    )
+
+    action = db.Column(
+        db.String(200)
+    )
+
+    module = db.Column(
+        db.String(100)
+    )
+
+    details = db.Column(
+        db.Text
+    )
+
+    ip_address = db.Column(
+        db.String(50)
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp()
+    )

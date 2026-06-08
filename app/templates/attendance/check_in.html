@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}
+Attendance Check In
+{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+
+    <div class="col-md-8">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body">
+
+                <h3 class="mb-4">
+                    Attendance Check In
+                </h3>
+
+                <div class="text-center">
+
+                    <video
+                        id="video"
+                        width="400"
+                        height="300"
+                        autoplay
+                        class="border rounded">
+                    </video>
+
+                </div>
+
+                <div class="text-center mt-3">
+
+                    <button
+                        type="button"
+                        id="capture"
+                        class="btn btn-primary">
+
+                        <i class="bi bi-camera"></i>
+
+                        Capture Selfie
+
+                    </button>
+
+                </div>
+
+                <div class="text-center mt-3">
+
+                    <canvas
+                        id="canvas"
+                        style="display:none;">
+                    </canvas>
+
+                    <img
+                        id="preview"
+                        class="img-thumbnail"
+                        style="display:none; max-width:300px;">
+
+                </div>
+
+                <form method="POST"
+                      id="attendanceForm">
+
+                    <input
+                        type="hidden"
+                        name="photo"
+                        id="photo">
+
+                    <input type="hidden"
+                        name="latitude"
+                        id="latitude">
+
+                    <input type="hidden"
+                        name="longitude"
+                        id="longitude">
+
+                    <div class="text-center mt-4">
+
+                        <button
+                            type="submit"
+                            class="btn btn-success">
+
+                            <i class="bi bi-check-circle"></i>
+
+                            Complete Check In
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const video =
+    document.getElementById(
+        "video"
+    );
+
+const canvas =
+    document.getElementById(
+        "canvas"
+    );
+
+const preview =
+    document.getElementById(
+        "preview"
+    );
+
+const photoInput =
+    document.getElementById(
+        "photo"
+    );
+
+navigator.mediaDevices
+.getUserMedia({
+    video: true
+})
+.then(function(stream){
+
+    video.srcObject = stream;
+
+})
+.catch(function(error){
+
+    alert(
+        "Unable to access camera"
+    );
+
+});
+
+document
+.getElementById("capture")
+.addEventListener(
+    "click",
+    function(){
+
+        canvas.width =
+            video.videoWidth;
+
+        canvas.height =
+            video.videoHeight;
+
+        canvas
+        .getContext("2d")
+        .drawImage(
+            video,
+            0,
+            0
+        );
+
+        const imageData =
+            canvas.toDataURL(
+                "image/jpeg"
+            );
+
+        photoInput.value =
+            imageData;
+
+        preview.src =
+            imageData;
+
+        preview.style.display =
+            "block";
+
+    }
+);
+
+document
+.getElementById(
+    "attendanceForm"
+)
+.addEventListener(
+    "submit",
+    function(e){
+
+        if(
+            photoInput.value === ""
+        ){
+
+            e.preventDefault();
+
+            alert(
+                "Please capture a selfie before checking in."
+            );
+        }
+
+    }
+);
+
+navigator.geolocation.getCurrentPosition(
+
+    function(position){
+
+        document.getElementById(
+            "latitude"
+        ).value =
+        position.coords.latitude;
+
+        document.getElementById(
+            "longitude"
+        ).value =
+        position.coords.longitude;
+
+    },
+
+    function(error){
+
+        alert(
+            "Location access is required for attendance."
+        );
+
+    }
+
+);
+
+</script>
+
+{% endblock %}

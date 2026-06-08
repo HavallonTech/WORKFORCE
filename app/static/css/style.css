@@ -10,7 +10,7 @@ body{
 .sidebar{
     width:260px;
     min-height:100vh;
-    background:#0d6efd;
+    background:#011f4c;
     color:white;
     padding:20px;
 }
@@ -21,10 +21,34 @@ body{
 }
 
 .sidebar .nav-link:hover{
-    background:rgba(255,255,255,.2);
+    background:rgba(140, 199, 12, 0.2);
     border-radius:5px;
 }
 
 .main-content{
     flex:1;
+}
+.sidebar .nav-link {
+    transition: all .2s ease;
+}
+
+.collapse.show + .caret {
+    transform: rotate(180deg);
+}
+.card-body {
+    background-color: #f0f8ff;
+}
+.dashboard-card .card-body {
+    background-color: #eaf6ff;
+}
+.sidebar {
+    background: #0f172a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 20px;
 }

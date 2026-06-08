@@ -8,7 +8,7 @@ Units
 
 <div class="d-flex justify-content-between mb-3">
 
-    <h2>Units</h2>
+    <h2>Units </h2>
 
     <a href="/units/add"
        class="btn btn-primary">
@@ -38,12 +38,13 @@ Units
                     <th>Email</th>
 
                     <th>Status</th>
+                    <th>Actions</th>
 
                 </tr>
 
             </thead>
 
-            <tbody>
+           <tbody>
 
                 {% for unit in units %}
 
@@ -61,13 +62,39 @@ Units
 
                         {% if unit.status %}
 
-                            Active
+                            <span class="badge bg-success">
+                                Active
+                            </span>
 
                         {% else %}
 
-                            Inactive
+                            <span class="badge bg-danger">
+                                Inactive
+                            </span>
 
                         {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        <a href="{{ url_for('main.edit_unit', id=unit.id) }}"
+                        class="btn btn-sm btn-warning">
+
+                            Edit
+
+                        </a>
+
+                        <a href="{{ url_for('main.toggle_unit', id=unit.id) }}"
+                        class="btn btn-sm btn-secondary">
+
+                            {% if unit.status %}
+                                Deactivate
+                            {% else %}
+                                Activate
+                            {% endif %}
+
+                        </a>
 
                     </td>
 
@@ -76,7 +103,6 @@ Units
                 {% endfor %}
 
             </tbody>
-
         </table>
 
     </div>

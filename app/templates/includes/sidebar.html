@@ -17,45 +17,136 @@
         </li>
 
         <li class="nav-item">
-            <a class="nav-link text-white"
-               href="#">
 
-                <i class="bi bi-building"></i>
-                Units
+            <a class="nav-link text-white d-flex justify-content-between"
+            data-bs-toggle="collapse"
+            href="#administrationMenu"
+            role="button">
+
+                <span>
+                    <i class="bi bi-gear"></i>
+                    Administration
+                </span>
+
+                <i class="bi bi-caret-down-fill"></i>
 
             </a>
+
+            <div class="collapse show" id="administrationMenu">
+
+                <ul class="nav flex-column ms-3">
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white"
+                        href="{{ url_for('main.units') }}">
+
+                            <i class="bi bi-building"></i>
+                            Units
+
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white"
+                        href="{{ url_for('main.unit_locations') }}">
+
+                        
+
+                            <i class="bi bi-geo-alt"></i>
+                            Unit Locations
+
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white"
+                            href="{{ url_for('main.departments') }}">
+
+                                <i class="bi bi-diagram-3"></i>
+
+                                Departments
+
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-white"
+                        href="{{ url_for('main.users') }}">
+
+                            <i class="bi bi-people"></i>
+
+                            Users
+
+                        </a>
+                    </li>
+
+                </ul>
+
+            </div>
+
+        </li>
+        <li class="nav-item">
+
+            <a class="nav-link text-white"
+            href="{{ url_for('main.my_attendance') }}">
+
+                <i class="bi bi-calendar-check"></i>
+
+                My Attendance
+
+            </a>
+
+        </li>
+        <li class="nav-item">
+
+            <a class="nav-link text-white"
+            href="{{ url_for('main.profile') }}">
+
+                <i class="bi bi-person-circle"></i>
+
+                My Profile
+
+            </a>
+
+        </li>
+        <li>
+
+            <a class="nav-link text-white"
+            href="{{ url_for('main.attendance_report') }}">
+
+                <i class="bi bi-file-earmark-text"></i>
+
+                Attendance Report
+
+            </a>
+
         </li>
 
         <li class="nav-item">
             <a class="nav-link text-white"
-               href="#">
+            href="{{ url_for('main.change_password') }}">
 
-                <i class="bi bi-diagram-3"></i>
-                Departments
+                <i class="bi bi-key"></i>
 
-            </a>
-        </li>
-
-        <li class="nav-item">
-            <a class="nav-link text-white"
-               href="#">
-
-                <i class="bi bi-people"></i>
-                Users
+                Change Password
 
             </a>
         </li>
-
-        <li class="nav-item">
-            <a class="nav-link text-white"
-               href="#">
-
-                <i class="bi bi-clock-history"></i>
-                Attendance
-
-            </a>
-        </li>
+        
+        
 
     </ul>
+    <div class="sidebar-footer">
+
+    <a href="{{ url_for('main.logout') }}"
+       class="nav-link text-white">
+
+        <i class="bi bi-box-arrow-right"></i>
+
+        Logout
+
+    </a>
+
+</div>
 
 </div>

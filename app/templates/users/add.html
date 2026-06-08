@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}
+Add User
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+
+    <h3>Add User</h3>
+
+    <a href="{{ url_for('main.users') }}"
+       class="btn btn-secondary">
+
+        Back
+
+    </a>
+
+</div>
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <form method="POST">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Staff ID
+                    </label>
+
+                    <input type="text"
+                           name="staff_id"
+                           class="form-control"
+                           required>
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Full Name
+                    </label>
+
+                    <input type="text"
+                           name="full_name"
+                           class="form-control"
+                           required>
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Username
+                    </label>
+
+                    <input type="text"
+                           name="username"
+                           class="form-control"
+                           required>
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Email
+                    </label>
+
+                    <input type="email"
+                           name="email"
+                           class="form-control" required>
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Phone
+                    </label>
+
+                    <input type="text"
+                           name="phone"
+                           class="form-control">
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Role
+                    </label>
+
+                    <select name="role"
+                            class="form-select"
+                            required>
+
+                        <option value="">
+                            Select Role
+                        </option>
+
+                        <option value="superadmin">
+                            Super Admin
+                        </option>
+
+                        <option value="admin">
+                            Admin
+                        </option>
+
+                        <option value="supervisor">
+                            Supervisor
+                        </option>
+
+                        <option value="staff">
+                            Staff
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Unit
+                    </label>
+
+                    <select name="unit_id"
+                            class="form-select"
+                            required>
+
+                        <option value="">
+                            Select Unit
+                        </option>
+
+                        {% for unit in units %}
+
+                        <option value="{{ unit.id }}">
+                            {{ unit.name }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Department
+                    </label>
+
+                    <select name="department_id"
+                            class="form-select"
+                            required>
+
+                        <option value="">
+                            Select Department
+                        </option>
+
+                        {% for department in departments %}
+
+                        <option value="{{ department.id }}">
+                            {{ department.name }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Password
+                    </label>
+
+                    <input type="password"
+                           name="password"
+                           class="form-control"
+                           required>
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <label class="form-label">
+                        Confirm Password
+                    </label>
+
+                    <input type="password"
+                           name="confirm_password"
+                           class="form-control"
+                           required>
+
+                </div>
+
+            </div>
+
+            <button type="submit"
+                    class="btn btn-primary">
+
+                Save User
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

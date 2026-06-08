@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}
+Add Department
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-header">
+
+        Add Department
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="POST">
+
+            <div class="mb-3">
+
+                <label class="form-label">
+
+                    Unit
+
+                </label>
+
+                <select
+                    name="unit_id"
+                    class="form-control"
+                    required>
+
+                    <option value="">
+
+                        Select Unit
+
+                    </option>
+
+                    {% for unit in units %}
+
+                    <option value="{{ unit.id }}">
+
+                        {{ unit.name }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+
+                    Department Name
+
+                </label>
+
+                <input
+                    type="text"
+                    name="name"
+                    class="form-control"
+                    required>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+
+                    Description
+
+                </label>
+
+                <textarea
+                    name="description"
+                    rows="4"
+                    class="form-control"></textarea>
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-success">
+
+                Save Department
+
+            </button>
+
+            <a href="{{ url_for('main.departments') }}"
+               class="btn btn-secondary">
+
+                Cancel
+
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

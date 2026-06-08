@@ -26,3 +26,5 @@ class Config:
     MAIL_DEFAULT_SENDER = "bt.reports@bthdc.com.ng"
 
     MAIL_TIMEOUT = 15
+    TEMPLATES_AUTO_RELOAD = True
+    SEND_FILE_MAX_AGE_DEFAULT = 0

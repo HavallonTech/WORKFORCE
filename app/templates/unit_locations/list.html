@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}
+Unit Locations
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+
+    <h3>Unit Locations</h3>
+
+    <a href="{{ url_for('main.add_unit_location') }}"
+       class="btn btn-primary">
+
+        Add Location
+
+    </a>
+
+</div>
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <table class="table table-hover">
+
+            <thead>
+
+                <tr>
+
+                    <th>Unit</th>
+                    <th>Location Name</th>
+                    <th>Coordinates</th>
+                    <th>Radius (m)</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for location in locations %}
+
+                <tr>
+
+                    <td>{{ location.unit.name }}</td>
+
+                    <td>{{ location.name }}</td>
+
+                    <td>{{ location.latitude }}, {{ location.longitude }}</td>
+
+                    <td>{{ location.radius }}</td>
+
+                    <td>
+
+                        {% if location.status %}
+
+                            <span class="badge bg-success">
+                                Active
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-danger">
+                                Inactive
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        <a href="{{ url_for('main.edit_unit_location', id=location.id) }}"
+                        class="btn btn-sm btn-primary">
+
+                            Edit
+
+                        </a>
+
+                        <a href="{{ url_for('main.toggle_unit_location', id=location.id) }}"
+                        class="btn btn-sm {% if location.status %}btn-warning{% else %}btn-success{% endif %}">
+
+                            {% if location.status %}
+                                Disable
+                            {% else %}
+                                Enable
+                            {% endif %}
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}
