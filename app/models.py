@@ -78,6 +78,11 @@ class User(UserMixin, db.Model):
         backref="user",
         lazy=True
     )
+    field_attendances = db.relationship(
+        "FieldAttendance",
+        backref="user",
+        lazy=True
+    )
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -144,6 +149,11 @@ class Unit(db.Model):
         backref="unit",
         lazy=True
     )
+    field_attendances = db.relationship(
+        "FieldAttendance",
+        backref="unit",
+        lazy=True
+    )
     
 
 
@@ -176,6 +186,11 @@ class UnitLocation(db.Model):
     )
     attendances = db.relationship(
         "Attendance",
+        backref="location",
+        lazy=True
+    )
+    field_attendances = db.relationship(
+        "FieldAttendance",
         backref="location",
         lazy=True
     )
@@ -318,6 +333,82 @@ class AuditLog(db.Model):
 
     ip_address = db.Column(
         db.String(50)
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=db.func.current_timestamp()
+    )
+    browser = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    device = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    operating_system = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+class FieldAttendance(db.Model):
+
+    __tablename__ = "field_attendance"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
+    unit_id = db.Column(
+        db.Integer,
+        db.ForeignKey("units.id"),
+        nullable=False
+    )
+
+    location_id = db.Column(
+        db.Integer,
+        db.ForeignKey("unit_locations.id"),
+        nullable=False
+    )
+
+    attendance_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    checkpoint_number = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    attendance_time = db.Column(
+        db.DateTime,
+        nullable=False
+    )
+
+    photo = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    latitude = db.Column(
+        db.Float,
+        nullable=False
+    )
+
+    longitude = db.Column(
+        db.Float,
+        nullable=False
     )
 
     created_at = db.Column(

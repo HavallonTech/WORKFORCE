@@ -12,8 +12,66 @@ Modular structure ready for Attendance, GPS Tracking, Leave Management, etc.
 Username: superadmin
 Password: Admin@123
 
+python -m pip install pandas openpyxl reportlab
+
+Attendance Interpretation A:
+Staff clocks in every hour:
+
+08:00 AM  Punch 1
+09:00 AM  Punch 2
+10:00 AM  Punch 3
+11:00 AM  Punch 4
+12:00 PM  Punch 5
+01:00 PM  Punch 6
+02:00 PM  Punch 7
+03:00 PM  Punch 8
+
+User can mark attendance
+8 times daily.
+
+System blocks attendance
+after 8 entries.
+
+Office Staff
+→ Use Check In / Check Out
+
+Field Marketers
+→ Use Attendance Punches (8 Punches)
+
+Assigned to Campaign A
+↓
+Assigned to Unit/Location
+↓
+Must prove presence periodically
+↓
+GPS + Selfie + Timestamp
 
 
+
+
+Lock Down The Business Rules
+
+Field marketers are assigned to a unit/location.
+
+They must prove presence periodically.
+
+Rule 1: Attendance Window
+
+Should attendance be allowed only during:
+08:00 AM - 05:00 PM
+Rule 2: Maximum Checkpoints
+8 checkpoints per day
+
+Example:
+
+Checkpoint 1
+Checkpoint 2
+Checkpoint 3
+Checkpoint 4
+Checkpoint 5
+Checkpoint 6
+Checkpoint 7
+Checkpoint 8
 
 
 

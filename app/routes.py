@@ -1,8 +1,8 @@
 
 
-from flask import Blueprint, flash, render_template, request, redirect, url_for
+from flask import Blueprint, app, current_app, flash, render_template, request, redirect, url_for
 from flask_login import current_user, login_user, login_required, logout_user
-from app.models import Attendance, Department, User, Unit
+from app.models import Attendance, AuditLog, Department, User, Unit
 from app import db
 from app.helpers import toast
 from app.utils.audit import log_audit
@@ -12,10 +12,25 @@ from datetime import datetime, date
 from app.utils.timezone import nigeria_now
 import os
 import base64
+from app.utils.permissions import (
+    admin_required,
+    superadmin_required
+)
 
 from app.utils.geofence import (
     distance_in_meters
 )
+from io import BytesIO
+import pandas as pd
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Table,
+    TableStyle
+)
+
+from reportlab.lib import colors
+
+from flask import send_file
 
 
 main = Blueprint("main", __name__)
@@ -45,20 +60,33 @@ def create_super_admin():
 @main.route("/", methods=["GET", "POST"])
 def login():
 
+    # User already logged in
+    if current_user.is_authenticated:
+
+        return redirect(
+            url_for("main.dashboard")
+        )
+
     if request.method == "POST":
 
-        username = request.form.get("username")
+        username = request.form.get(
+            "username"
+        )
 
-        password = request.form.get("password")
+        password = request.form.get(
+            "password"
+        )
 
-        user = User.query.filter_by(username=username).first()
-        #if user.must_change_password:
+        user = User.query.filter_by(
+            username=username
+        ).first()
 
-            #return redirect(
-             #   url_for(
-              #      "main.change_password"
-               # )
-            #)
+        # if user.must_change_password:
+        #     return redirect(
+        #         url_for(
+        #             "main.change_password"
+        #         )
+        #     )
 
         if user and user.check_password(password):
 
@@ -67,15 +95,27 @@ def login():
             db.session.commit()
 
             login_user(user)
+
             log_audit(
                 "Authentication",
                 "Login",
                 f"{user.username} logged in"
             )
 
-            return redirect(url_for("main.dashboard"))
+            return redirect(
+                url_for("main.dashboard")
+            )
 
-    return render_template("auth/login.html")
+        else:
+
+            toast(
+                "Invalid username or password",
+                "danger"
+            )
+
+    return render_template(
+        "auth/login.html"
+    )
 
 @main.route("/dashboard")
 @login_required
@@ -948,11 +988,20 @@ def profile():
 @login_required
 def my_attendance():
 
-    records = Attendance.query.filter_by(
-        user_id=current_user.id
-    ).order_by(
-        Attendance.attendance_date.desc()
-    ).all()
+    page = request.args.get(
+        "page",
+        1,
+        type=int
+    )
+
+    records = query.order_by(
+        Attendance.attendance_date.desc(),
+        Attendance.id.desc()
+    ).paginate(
+        page=page,
+        per_page=20,
+        error_out=False
+    )
 
     return render_template(
         "attendance/list.html",
@@ -1439,20 +1488,86 @@ def check_out():
         "attendance/check_out.html"
     )
 
+#######################Reusable Filter Block for Attendance Report Route############################################################
+###############################################################################################################################
+
+def get_attendance_query():
+
+    query = Attendance.query
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    if start_date:
+
+        query = query.filter(
+            Attendance.attendance_date >= start_date
+        )
+
+    if end_date:
+
+        query = query.filter(
+            Attendance.attendance_date <= end_date
+        )
+
+    if unit_id:
+
+        query = query.filter(
+            Attendance.unit_id == unit_id
+        )
+
+    if user_id:
+
+        query = query.filter(
+            Attendance.user_id == user_id
+        )
+
+    return query
+
+
 ###################################################################################################333333333333333
 #############################Attendance Report Route########################################################################################
 @main.route(
     "/reports/attendance",
-    methods=["GET", "POST"]
+    methods=["GET"]
 )
 @login_required
 def attendance_report():
 
-    records = []
+    page = request.args.get(
+        "page",
+        1,
+        type=int
+    )
 
-    start_date = None
+    start_date = request.values.get(
+        "start_date"
+    )
 
-    end_date = None
+    end_date = request.values.get(
+        "end_date"
+    )
+
+    unit_id = request.values.get(
+        "unit_id"
+    )
+
+    user_id = request.values.get(
+        "user_id"
+    )
 
     units = Unit.query.filter_by(
         status=True
@@ -1462,62 +1577,54 @@ def attendance_report():
         is_active_user=True
     ).all()
 
-    if request.method == "POST":
+    query = Attendance.query
 
-        start_date = request.form.get(
-            "start_date"
+    if start_date:
+
+        query = query.filter(
+            Attendance.attendance_date >= start_date
         )
 
-        end_date = request.form.get(
-            "end_date"
+    if end_date:
+
+        query = query.filter(
+            Attendance.attendance_date <= end_date
         )
 
-        unit_id = request.form.get(
-            "unit_id"
+    if unit_id:
+
+        query = query.filter(
+            Attendance.unit_id == unit_id
         )
 
-        user_id = request.form.get(
-            "user_id"
+    if user_id:
+
+        query = query.filter(
+            Attendance.user_id == user_id
         )
 
-        query = Attendance.query
+    records = query.order_by(
 
-        if start_date:
+        Attendance.attendance_date.desc(),
 
-            query = query.filter(
-                Attendance.attendance_date >= start_date
-            )
+        Attendance.id.desc()
 
-        if end_date:
+    ).paginate(
 
-            query = query.filter(
-                Attendance.attendance_date <= end_date
-            )
+        page=page,
 
-        if unit_id:
+        per_page=20,
 
-            query = query.filter(
-                Attendance.unit_id == unit_id
-            )
+        error_out=False
 
-        if user_id:
+    )
 
-            query = query.filter(
-                Attendance.user_id == user_id
-            )
-
-        records = query.order_by(
-
-            Attendance.attendance_date.desc(),
-
-            Attendance.id.desc()
-
-        ).all()
+    if start_date or end_date or unit_id or user_id:
 
         log_audit(
             "Reports",
             "Attendance Report",
-            f"Attendance report generated"
+            "Attendance report generated"
         )
 
     return render_template(
@@ -1530,7 +1637,485 @@ def attendance_report():
 
         end_date=end_date,
 
+        unit_id=unit_id,
+
+        user_id=user_id,
+
         units=units,
 
         users=users
     )
+
+
+
+
+@main.route("/audit-logs",methods=["GET", "POST"])
+@login_required
+@superadmin_required
+def audit_logs():
+
+    users = User.query.order_by(
+        User.full_name
+    ).all()
+
+    modules = db.session.query(
+        AuditLog.module
+    ).distinct().all()
+
+    query = AuditLog.query
+    total_logs = AuditLog.query.count()
+
+    today_logs = AuditLog.query.filter(
+        db.func.date(
+            AuditLog.created_at
+        ) == nigeria_now().date()
+    ).count()
+
+    total_users = db.session.query(
+        AuditLog.username
+    ).distinct().count()
+
+    total_modules = db.session.query(
+        AuditLog.module
+    ).distinct().count()
+
+    start_date = None
+    end_date = None
+    user_id = None
+    module = None
+
+    if request.method == "POST":
+
+        start_date = request.form.get(
+            "start_date"
+        )
+
+        end_date = request.form.get(
+            "end_date"
+        )
+
+        user_id = request.form.get(
+            "user_id"
+        )
+
+        module = request.form.get(
+            "module"
+        )
+
+        if start_date:
+
+            query = query.filter(
+                db.func.date(
+                    AuditLog.created_at
+                ) >= start_date
+            )
+
+        if end_date:
+
+            query = query.filter(
+                db.func.date(
+                    AuditLog.created_at
+                ) <= end_date
+            )
+
+        if user_id:
+
+            query = query.filter(
+                AuditLog.user_id == int(user_id)
+            )
+
+        if module:
+
+            query = query.filter(
+                AuditLog.module == module
+            )
+
+    page = request.args.get(
+        "page",
+        1,
+        type=int
+    )
+
+    logs = query.order_by(
+        AuditLog.id.desc()
+    ).paginate(
+        page=page,
+        per_page=50
+    )
+
+    return render_template(
+        "audit_logs/list.html",
+        logs=logs,
+        users=users,
+        modules=modules,
+        start_date=start_date,
+        end_date=end_date,
+        selected_user=user_id,
+        total_logs=total_logs,
+        today_logs=today_logs,
+        total_users=total_users,
+        total_modules=total_modules,
+        selected_module=module
+    )
+
+@main.route(
+    "/audit-logs/excel"
+)
+@login_required
+@superadmin_required
+def export_audit_excel():
+
+    logs = AuditLog.query.order_by(
+        AuditLog.id.desc()
+    ).all()
+
+    data = []
+
+    for log in logs:
+
+        data.append({
+
+            "Date Time":
+            log.created_at,
+
+            "User":
+            log.username,
+
+            "Module":
+            log.module,
+
+            "Action":
+            log.action,
+
+            "Details":
+            log.details,
+
+            "IP Address":
+            log.ip_address
+        })
+
+    df = pd.DataFrame(data)
+
+    output = BytesIO()
+
+    df.to_excel(
+        output,
+        index=False
+    )
+
+    output.seek(0)
+
+    return send_file(
+
+        output,
+
+        download_name=
+        "audit_logs.xlsx",
+
+        as_attachment=True
+    )
+@main.route(
+    "/audit-logs/pdf"
+)
+@login_required
+@admin_required
+def export_audit_pdf():
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer
+    )
+
+    data = [[
+
+        "Date",
+
+        "User",
+
+        "Module",
+
+        "Action"
+
+    ]]
+
+    logs = AuditLog.query.order_by(
+        AuditLog.id.desc()
+    ).all()
+
+    for log in logs:
+
+        data.append([
+
+            str(log.created_at),
+
+            log.username or "",
+
+            log.module or "",
+
+            log.action or ""
+
+        ])
+
+    table = Table(data)
+
+    table.setStyle(
+
+        TableStyle([
+
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, 0),
+                colors.lightblue
+            ),
+
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                1,
+                colors.black
+            ),
+
+            (
+                "FONTSIZE",
+                (0, 0),
+                (-1, -1),
+                8
+            )
+
+        ])
+    )
+
+    doc.build(
+        [table]
+    )
+
+    buffer.seek(0)
+
+    return send_file(
+
+        buffer,
+
+        as_attachment=True,
+
+        download_name=
+        "audit_logs.pdf",
+
+        mimetype=
+        "application/pdf"
+    )
+
+from datetime import datetime
+
+@main.route(
+    "/audit-logs/print"
+)
+@login_required
+@admin_required
+def print_audit_logs():
+
+    logs = AuditLog.query.order_by(
+        AuditLog.id.desc()
+    ).all()
+
+    return render_template(
+
+        "audit_logs/print.html",
+
+        logs=logs,
+
+        generated_at=datetime.now().strftime(
+            "%d-%b-%Y %H:%M"
+        )
+    )
+
+
+
+@main.route("/reports/attendance/print")
+@login_required
+@admin_required
+def print_attendance_report():
+
+    records = get_attendance_query().order_by(
+        Attendance.attendance_date.desc()
+        ).all()
+
+    generated_at = datetime.now().strftime(
+        "%d-%b-%Y %I:%M %p"
+    )
+    return render_template(
+        "reports/attendance_print.html",
+        records=records,
+        generated_at=generated_at
+    )
+
+@main.route(
+    "/reports/attendance/excel"
+)
+@login_required
+@admin_required
+def export_attendance_excel():
+
+    records = get_attendance_query().order_by(
+        Attendance.attendance_date.desc()
+        ).all()
+
+    data = []
+
+    for record in records:
+
+        data.append({
+
+            "Date":
+            record.attendance_date,
+
+            "Staff":
+            record.user.full_name,
+
+            "Unit":
+            record.unit.name,
+
+            "Location":
+            record.location.name
+            if record.location
+            else "",
+
+            "Check In":
+            record.check_in,
+
+            "Check Out":
+            record.check_out,
+
+            "Status":
+            record.status,
+
+            "Check In Latitude":
+            record.check_in_latitude,
+
+            "Check In Longitude":
+            record.check_in_longitude,
+
+            "Check Out Latitude":
+            record.check_out_latitude,
+
+            "Check Out Longitude":
+            record.check_out_longitude
+        })
+
+    df = pd.DataFrame(data)
+
+    output = BytesIO()
+
+    df.to_excel(
+        output,
+        index=False
+    )
+
+    output.seek(0)
+
+    return send_file(
+
+        output,
+
+        download_name=
+        "attendance_report.xlsx",
+
+        as_attachment=True
+    )
+
+@main.route(
+    "/reports/attendance/pdf"
+)
+@login_required
+@admin_required
+def export_attendance_pdf():
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer
+    )
+
+    data = [[
+
+        "Date",
+
+        "Staff",
+
+        "Unit",
+
+        "Location",
+
+        "Status"
+
+    ]]
+
+    records = get_attendance_query().order_by(
+        Attendance.attendance_date.desc()
+    ).all()
+
+    for record in records:
+
+        data.append([
+
+            str(
+                record.attendance_date
+            ),
+
+            record.user.full_name,
+
+            record.unit.name,
+
+            record.location.name
+            if record.location
+            else "",
+
+            record.status
+
+        ])
+
+    table = Table(data)
+
+    table.setStyle(
+
+        TableStyle([
+
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, 0),
+                colors.lightblue
+            ),
+
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                1,
+                colors.black
+            )
+        ])
+    )
+
+    doc.build(
+        [table]
+    )
+
+    buffer.seek(0)
+
+    return send_file(
+
+        buffer,
+
+        download_name=
+        "attendance_report.pdf",
+
+        as_attachment=True,
+
+        mimetype=
+        "application/pdf"
+    )
+
+

@@ -5,7 +5,6 @@
     </h3>
 
     <ul class="nav flex-column">
-
         <li class="nav-item">
             <a class="nav-link text-white"
                href="/dashboard">
@@ -79,6 +78,34 @@
 
                         </a>
                     </li>
+                    <li>
+
+                        <a class="nav-link text-white"
+                        href="{{ url_for('main.attendance_report') }}">
+
+                            <i class="bi bi-file-earmark-text"></i>
+
+                            Attendance Report
+
+                        </a>
+
+                    </li>
+                    {% if current_user.role in [
+                        "superadmin"
+                    ] %}
+
+                    <li>
+
+                        <a class="nav-link text-white"
+                        href="{{ url_for('main.audit_logs') }}">
+                        <i class="bi bi-file-earmark-text"></i>
+
+                            Audit Logs
+
+                        </a>
+
+                    </li>
+                    {% endif %}
 
                 </ul>
 
@@ -109,19 +136,7 @@
             </a>
 
         </li>
-        <li>
-
-            <a class="nav-link text-white"
-            href="{{ url_for('main.attendance_report') }}">
-
-                <i class="bi bi-file-earmark-text"></i>
-
-                Attendance Report
-
-            </a>
-
-        </li>
-
+        
         <li class="nav-item">
             <a class="nav-link text-white"
             href="{{ url_for('main.change_password') }}">

@@ -40,10 +40,18 @@ def log_audit(
             ip_address=request.headers.get(
                 "X-Forwarded-For",
                 request.remote_addr
-            )
+            ),
+
+            browser=request.user_agent.browser,
+
+            device=request.user_agent.platform,
+
+            operating_system=request.user_agent.os
         )
 
-        db.session.add(audit)
+        db.session.add(
+            audit
+        )
 
         db.session.commit()
 
