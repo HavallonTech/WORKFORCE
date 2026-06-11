@@ -415,3 +415,12 @@ class FieldAttendance(db.Model):
         db.DateTime,
         default=db.func.current_timestamp()
     )
+    remarks = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    distance = db.Column(
+        db.Float,
+        nullable=True
+    )

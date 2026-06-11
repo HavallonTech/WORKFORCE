@@ -72,8 +72,59 @@ Checkpoint 5
 Checkpoint 6
 Checkpoint 7
 Checkpoint 8
+Rule 3: Minimum Interval
 
+Recommended:
 
+60 minutes
+
+between checkpoints.
+
+Otherwise:
+
+08:00 AM  Checkpoint 1
+08:01 AM  Checkpoint 2
+08:02 AM  Checkpoint 3
+...
+
+which defeats the purpose.
+
+Rule 4: GPS Mandatory
+
+Use your existing:
+
+distance_in_meters()
+
+logic.
+
+Rule 5: Geofence Mandatory
+
+Must be inside assigned location radius.
+
+Rule 6: Selfie Mandatory
+
+No selfie.
+
+No checkpoint.
+
+Rule 7: Auto Numbering
+
+The system automatically calculates:
+
+Design steps
+Checkpoint 1 Window
+
+Opens: 07:30 AM
+Closes: 08:20 AM (Nigerian Time)
+
+Punch 1  = 07:30 - 08:20
+Punch 2  = 08:50 - 09:20
+Punch 3  = 09:50 - 10:20
+Punch 4  = 10:50 - 11:20
+Punch 5  = 11:50 - 12:20
+Punch 6  = 12:50 - 01:20
+Punch 7  = 01:50 - 02:20
+Punch 8  = 02:50 - 03:20
 
 
 

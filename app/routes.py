@@ -32,6 +32,12 @@ from reportlab.lib import colors
 
 from flask import send_file
 
+from app.utils.field_attendance import (
+    get_current_punch
+)
+from app.models import (
+    FieldAttendance
+)
 
 main = Blueprint("main", __name__)
 
@@ -2118,4 +2124,290 @@ def export_attendance_pdf():
         "application/pdf"
     )
 
+@main.route(
+    "/field-attendance/checkpoint",
+    methods=["GET", "POST"]
+)
+@login_required
+def field_checkpoint():
 
+    today = nigeria_now().date()
+
+    current_time = nigeria_now().time()
+
+    current_punch = get_current_punch(
+        current_time
+    )
+
+    if not current_punch:
+
+        toast(
+            "No active attendance window currently, its late.",
+            "warning"
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+    existing = FieldAttendance.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today,
+
+        checkpoint_number=current_punch
+
+    ).first()
+
+    if existing:
+
+        toast(
+            f"Punch {current_punch} already recorded",
+            "warning"
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+    if request.method == "POST":
+
+        photo_data = request.form.get(
+            "photo"
+        )
+
+        latitude = request.form.get(
+            "latitude"
+        )
+
+        longitude = request.form.get(
+            "longitude"
+        )
+
+        remarks = request.form.get(
+            "remarks"
+        )
+
+        if not latitude or not longitude:
+
+            toast(
+                "Location required",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.field_checkpoint"
+                )
+            )
+
+        active_locations = UnitLocation.query.filter_by(
+
+            unit_id=current_user.unit_id,
+
+            status=True
+
+        ).all()
+
+        if not active_locations:
+
+            toast(
+                "No attendance location configured",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.dashboard"
+                )
+            )
+
+        allowed = False
+
+        matched_location = None
+
+        matched_distance = None
+
+        for location in active_locations:
+
+            distance = distance_in_meters(
+
+                float(latitude),
+
+                float(longitude),
+
+                location.latitude,
+
+                location.longitude
+
+            )
+
+            if distance <= location.radius:
+
+                allowed = True
+
+                matched_location = location
+
+                matched_distance = distance
+
+                break
+
+        if not allowed:
+
+            toast(
+                "You are outside all approved attendance locations",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.field_checkpoint"
+                )
+            )
+        
+        if not photo_data:
+            toast(
+                "Selfie is required",
+                "danger"
+                )
+            return redirect(
+                    url_for(
+                        "main.field_checkpoint"
+                    )
+                )
+
+        upload_folder = os.path.join(
+
+            "app",
+
+            "static",
+
+            "uploads",
+
+            "field_attendance"
+
+        )
+
+        os.makedirs(
+
+            upload_folder,
+
+            exist_ok=True
+
+        )
+
+        filename = (
+
+            f"field_"
+
+            f"{current_user.id}_"
+
+            f"{today}_"
+
+            f"{current_punch}.jpg"
+
+        )
+
+        filepath = os.path.join(
+
+            upload_folder,
+
+            filename
+
+        )
+
+        header, encoded = photo_data.split(
+            ",",
+            1
+        )
+
+        with open(
+            filepath,
+            "wb"
+        ) as f:
+
+            f.write(
+                base64.b64decode(
+                    encoded
+                )
+            )
+        attendance = FieldAttendance(
+
+            user_id=current_user.id,
+
+            unit_id=current_user.unit_id,
+
+            location_id=matched_location.id,
+
+            attendance_date=today,
+
+            checkpoint_number=current_punch,
+
+            attendance_time=nigeria_now(),
+
+            photo=filename,
+
+            latitude=float(latitude),
+
+            longitude=float(longitude),
+
+            distance=matched_distance,
+
+            remarks=remarks
+
+        )
+
+        db.session.add(
+            attendance
+        )
+
+        db.session.commit()
+
+        log_audit(
+
+            "Field Attendance",
+
+            f"Punch {current_punch}",
+
+            f"{current_user.username} completed Punch {current_punch} "
+            f"at {matched_location.name} "
+            f"({round(matched_distance,2)}m)"
+        )
+
+        toast(
+
+            f"Punch {current_punch} recorded successfully",
+
+            "success"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+    today_count = FieldAttendance.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today
+
+    ).count()
+
+    return render_template(
+
+        "field_attendance/checkpoint.html",
+
+        current_punch=current_punch,
+
+        completed=today_count,
+
+        remaining=8 - today_count
+    )
