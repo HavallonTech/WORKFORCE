@@ -152,6 +152,12 @@ Users
                             Edit
 
                         </a>
+                        <a href="{{ url_for('main.reset_user_password', id=user.id) }}"
+                            class="btn btn-sm btn-info">
+
+                                Reset Password
+
+                        </a>
 
                         <a href="{{ url_for('main.toggle_user', id=user.id) }}"
                         class="btn btn-sm btn-warning">

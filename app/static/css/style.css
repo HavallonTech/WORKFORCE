@@ -7,31 +7,11 @@ body{
     display:flex;
 }
 
-.sidebar{
-    width:260px;
-    min-height:100vh;
-    background:#011f4c;
-    color:white;
-    padding:20px;
-}
 
-.sidebar .nav-link{
-    color:white;
-    margin-bottom:10px;
-}
-
-.sidebar .nav-link:hover{
-    background:rgba(140, 199, 12, 0.2);
-    border-radius:5px;
-}
 
 .main-content{
     flex:1;
 }
-.sidebar .nav-link {
-    transition: all .2s ease;
-}
-
 .collapse.show + .caret {
     transform: rotate(180deg);
 }
@@ -41,14 +21,160 @@ body{
 .dashboard-card .card-body {
     background-color: #eaf6ff;
 }
+
+.field-attendance-btn {
+
+    background: linear-gradient(
+        135deg,
+        #4f46e5 0%,
+        #7c3aed 50%,
+        #ec4899 100%
+    );
+
+    color: white !important;
+
+    border: none;
+
+    border-radius: 15px;
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+
+    padding: 15px 35px;
+
+    transition: all 0.3s ease;
+
+    box-shadow:
+        0 10px 25px rgba(
+            124,
+            58,
+            237,
+            0.35
+        );
+}
+
+.field-attendance-btn:hover {
+
+    transform: translateY(-4px);
+
+    box-shadow:
+        0 15px 35px rgba(
+            124,
+            58,
+            237,
+            0.45
+        );
+
+    color: white !important;
+}
+
+.field-attendance-btn:active {
+
+    transform: scale(0.98);
+}
+
+.sidebar.collapsed {
+
+    width: 120px;
+    overflow-x: hidden;
+}
+
+.main-content.expanded {
+
+    margin-left: 100px;
+}
+.sidebar.collapsed h3 {
+
+    display: none;
+}
+
+.sidebar.collapsed .nav-link {
+
+    font-size: 0;
+}
+
+.sidebar.collapsed .nav-link i {
+
+    font-size: 22px;
+}
+
 .sidebar {
-    background: #0f172a;
+
+    width: 260px;
+
     min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    transition: all .3s ease;
+    background: #212529;
+
+    color: white;
+
+    position: fixed;
+
+    left: 0;
+
+    top: 0;
+
+    padding: 20px;
+
+    overflow-y: auto;
+    z-index: 1000;
+}
+#toggleSidebar {
+
+    position: absolute;
+
+    top: 10px;
+
+    right: 10px;
+
+    z-index: 9999;
+}
+
+.sidebar h3 {
+
+    color: white;
+}
+
+.sidebar .nav-link {
+
+    color: white !important;
+
+    padding: 10px 12px;
+
+    border-radius: 8px;
+
+    margin-bottom: 4px;
+
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-link:hover {
+
+    background-color: #495057;
+
+    color: white !important;
 }
 
 .sidebar-footer {
-    margin-top: auto;
-    padding-top: 20px;
+
+    margin-top: 30px;
+
+    border-top: 1px solid rgba(
+        255,
+        255,
+        255,
+        0.2
+    );
+
+    padding-top: 15px;
+}
+
+.main-content {
+
+    margin-left: 280px;
+    padding: 20px;
+    transition: all .3s ease;
 }

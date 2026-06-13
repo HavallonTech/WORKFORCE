@@ -75,7 +75,7 @@ Dashboard
             <div class="card-body">
 
                 <h3>
-                    0
+                    {{ present_today }}
                 </h3>
 
                 <p>
@@ -87,7 +87,94 @@ Dashboard
         </div>
 
     </div>
+    <div class="card shadow-sm mt-4">
 
+    <div class="card-header bg-primary text-white">
+
+        Field Attendance Today
+
+    </div>
+
+    <div class="card-body">
+
+        <h5>
+
+            Progress:
+
+            {{ completed_count }}/8
+
+        </h5>
+
+        <div class="row">
+
+            {% for punch in range(1,9) %}
+
+            <div class="col-md-3 mb-2">
+
+                {% if punch in completed_numbers %}
+
+                <div class="alert alert-success text-center mb-0">
+
+                    ✓ Punch {{ punch }}
+
+                </div>
+
+                {% else %}
+
+                <div class="alert alert-secondary text-center mb-0">
+
+                    Punch {{ punch }}
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    <div class="text-center mb-2">
+
+        <span class="badge bg-warning text-dark">
+
+            Next Action
+
+        </span>
+
+    </div>
+
+    <div class="text-center mt-4">
+
+        <a
+            href="{{ url_for('main.field_checkpoint') }}"
+            class="btn btn-lg px-5 py-3 shadow-sm field-attendance-btn">
+
+            <i class="bi bi-geo-alt-fill me-2"></i>
+
+            Field Attendance Check-In
+
+        </a>
+
+    </div>
+
+    <br/>
+
+</div>
+        <div class="progress">
+
+                    <div
+                        class="progress-bar bg-success"
+                        style="width: {{ (completed_count / 8) * 100 }}%">
+
+                        {{ completed_count }}/8
+
+                    </div>
+
+        </div>
 </div>
 
 {% endblock %}

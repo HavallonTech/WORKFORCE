@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}
+Field Attendance Compliance
+{% endblock %}
+
+{% block page_title %}
+Field Attendance Compliance Report
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+<!-- SUMMARY CARDS -->
+
+<div class="row mb-4">
+
+    <div class="col-md-2">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h6>Total Punches</h6>
+
+                <h2>{{ total_punches }}</h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h6>Expected Punches</h6>
+
+                <h2>{{ expected_punches }}</h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-2">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h6>Active Staff</h6>
+
+                <h2>{{ active_staff }}</h2>
+
+            </div>
+
+        </div>
+        
+
+    </div>
+
+    <div class="col-md-3">
+
+        <a href="{{ url_for('main.field_attendance_compliance') }}"
+           class="text-decoration-none">
+
+            <div class="card bg-warning shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h6>Average Compliance</h6>
+
+                    <h1>{{ compliance }}%</h1>
+
+                    <small>Click For Details</small>
+
+                </div>
+
+            </div>
+
+        </a>
+
+    </div>
+
+<!--####################################
+<div class="col-md-3">
+<div class="card border-success shadow-lg h-100">
+
+    <div class="card-header bg-success text-white text-center fw-bold">
+
+        Compliance Summary
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="mb-3 text-center">
+
+            <small class="text-muted d-block text-primary">
+
+               Expected Punches: {{ expected_punches }}
+
+            </small>
+        </div>
+
+        <div class="mb-3 text-center">
+
+            <h6 class="fw-bold text-success">
+
+                Actual Punches: {{ total_punches }}
+
+            </h6>
+
+        </div>
+
+        <div class="text-center">
+
+            <h6 class="fw-bold">
+
+                {% if compliance >= 90 %}
+
+                    <span class="text-success">
+
+                       Compliance: {{ compliance }}%
+
+                    </span>
+
+                {% elif compliance >= 70 %}
+
+                    <span class="text-warning">
+
+                       Compliance: {{ compliance }}%
+
+                    </span>
+
+                {% else %}
+
+                    <span class="text-danger">
+
+                        Compliance:{{ compliance }}%
+
+                    </span>
+
+                {% endif %}
+
+            </h6>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+<!--############################################################################################-->
+
+<div class="col-md-3">
+<div class="card border-success shadow-sm h-100">
+
+    <div class="card-header bg-success text-white text-center py-2">
+
+        Compliance Summary
+
+    </div>
+
+    <div class="card-body text-center">
+
+        <div>
+
+            <strong>Expected:</strong>
+
+            {{ expected_punches }}
+
+        </div>
+
+        <div>
+
+            <strong>Actual:</strong>
+
+            {{ total_punches }}
+
+        </div>
+
+        <div>
+
+            <strong>Compliance:</strong>
+
+            {{ compliance }}%
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+    
+<!--################################################################################################-->
+</div>
+
+<!-- FILTERS -->
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-primary text-white">
+
+        Compliance Filters
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="GET">
+
+            <div class="row">
+
+                <div class="col-md-2">
+
+                    <label>Date From</label>
+
+                    <input type="date"
+                           name="start_date"
+                           value="{{ start_date }}"
+                           class="form-control">
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label>Date To</label>
+
+                    <input type="date"
+                           name="end_date"
+                           value="{{ end_date }}"
+                           class="form-control">
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label>Unit</label>
+
+                    <select name="unit_id"
+                            class="form-select">
+
+                        <option value="">
+                            All Units
+                        </option>
+
+                        {% for unit in units %}
+
+                        <option value="{{ unit.id }}"
+                            {% if unit_id and unit_id|int == unit.id %}
+                            selected
+                            {% endif %}>
+
+                            {{ unit.name }}
+
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2">
+
+                    <label>Staff</label>
+
+                    <select name="user_id"
+                            class="form-select">
+
+                        <option value="">
+                            All Staff
+                        </option>
+
+                        {% for user in users %}
+
+                        <option value="{{ user.id }}"
+                            {% if user_id and user_id|int == user.id %}
+                            selected
+                            {% endif %}>
+
+                            {{ user.full_name }}
+
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-3 d-flex align-items-end">
+
+                    <button type="submit"
+                            class="btn btn-primary me-2">
+
+                        Go
+
+                    </button>
+
+                    <a href="{{ url_for(
+                            'main.field_attend_compl_excel',
+                            start_date=start_date,
+                            end_date=end_date,
+                            unit_id=unit_id,
+                            user_id=user_id
+                        ) }}"
+                    class="btn btn-success me-2">
+
+                        Excel
+
+                    </a>
+
+                    <a href="{{ url_for(
+                            'main.field_attend_compl_pdf',
+                            start_date=start_date,
+                            end_date=end_date,
+                            unit_id=unit_id,
+                            user_id=user_id
+                        ) }}"
+                    class="btn btn-danger">
+
+                        PDF
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- COMPLIANCE SUMMARY -->
+<div class="card shadow-sm">
+
+    <div class="card-header bg-dark text-white">
+
+        Filtered Attendance Report
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+            <div class="alert alert-secondary">
+
+                <strong>Date Range:</strong>
+
+                {{ start_date or 'All Dates' }}
+
+                -
+
+                {{ end_date or 'All Dates' }}
+
+                <br>
+
+                <strong>Total Staff:</strong>
+
+                {{ report_data|length }}
+
+            </div>
+
+            <table class="table table-bordered table-striped">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th>Staff</th>
+
+                        <th>Unit</th>
+
+                        <th>Total Punches</th>
+                        <th>Expected</th>
+
+                        <th>Compliance</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in report_data %}
+
+                    <tr>
+
+                        <td>{{ row.staff_name }}</td>
+
+                        <td>{{ row.unit_name }}</td>
+
+                        <td>{{ row.total_punches }}</td>
+                        <td>{{ row.expected_punches }}</td>
+
+                        <td>{{ row.compliance }}%</td>
+
+                        <td>
+
+                            {% if row.compliance >= 100 %}
+
+                                <span class="badge bg-success">
+
+                                    Compliant
+
+                                </span>
+
+                            {% elif row.compliance >= 50 %}
+
+                                <span class="badge bg-warning">
+
+                                    Partial
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-danger">
+
+                                    Non-Compliant
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+</div>
+
+{% endblock %}

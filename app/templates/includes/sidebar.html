@@ -1,110 +1,174 @@
-<div class="sidebar">
+<div id="sidebar" class="sidebar">
 
-    <h3 class="text-center mb-4">
-        WorkForce
-    </h3>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h3 id="sidebarTitle">
+
+            WorkForce
+
+        </h3>
+        <button
+            type="button"
+            id="toggleSidebar"
+            class="btn btn-sm btn-outline-light">
+
+            <i class="bi bi-list"></i>
+
+        </button>
+
+    </div>
 
     <ul class="nav flex-column">
+
+        <!-- DASHBOARD -->
+
         <li class="nav-item">
-            <a class="nav-link text-white"
-               href="/dashboard">
+
+            <a class="nav-link"
+               href="{{ url_for('main.dashboard') }}">
 
                 <i class="bi bi-speedometer2"></i>
-                Dashboard
-
+                <span>
+                    Dashboard
+                </span>
             </a>
+
         </li>
+
+        <!-- ADMINISTRATION -->
+
+        {% if current_user.role in ["admin", "superadmin"] %}
 
         <li class="nav-item">
 
-            <a class="nav-link text-white d-flex justify-content-between"
-            data-bs-toggle="collapse"
-            href="#administrationMenu"
-            role="button">
+            <a class="nav-link d-flex justify-content-between"
+               data-bs-toggle="collapse"
+               href="#administrationMenu"
+               role="button">
 
                 <span>
+
                     <i class="bi bi-gear"></i>
+
                     Administration
+
                 </span>
 
                 <i class="bi bi-caret-down-fill"></i>
 
             </a>
 
-            <div class="collapse show" id="administrationMenu">
+            <div class="collapse show"
+                 id="administrationMenu">
 
                 <ul class="nav flex-column ms-3">
 
-                    <li class="nav-item">
-                        <a class="nav-link text-white"
-                        href="{{ url_for('main.units') }}">
+                    <li>
+
+                        <a class="nav-link"
+                           href="{{ url_for('main.units') }}">
 
                             <i class="bi bi-building"></i>
+
                             Units
 
                         </a>
+
                     </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link text-white"
-                        href="{{ url_for('main.unit_locations') }}">
+                    <li>
 
-                        
+                        <a class="nav-link"
+                           href="{{ url_for('main.unit_locations') }}">
 
                             <i class="bi bi-geo-alt"></i>
+
                             Unit Locations
 
                         </a>
+
                     </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link text-white"
-                            href="{{ url_for('main.departments') }}">
+                    <li>
 
-                                <i class="bi bi-diagram-3"></i>
+                        <a class="nav-link"
+                           href="{{ url_for('main.departments') }}">
 
-                                Departments
+                            <i class="bi bi-diagram-3"></i>
+
+                            Departments
 
                         </a>
+
                     </li>
 
-                    <li class="nav-item">
-                        <a class="nav-link text-white"
-                        href="{{ url_for('main.users') }}">
+                    <li>
+
+                        <a class="nav-link"
+                           href="{{ url_for('main.users') }}">
 
                             <i class="bi bi-people"></i>
 
                             Users
 
                         </a>
+
                     </li>
+
                     <li>
 
-                        <a class="nav-link text-white"
-                        href="{{ url_for('main.attendance_report') }}">
+                        <a class="nav-link"
+                           href="{{ url_for('main.attendance_report') }}">
 
-                            <i class="bi bi-file-earmark-text"></i>
+                            <i class="bi bi-calendar-check"></i>
 
                             Attendance Report
 
                         </a>
 
                     </li>
-                    {% if current_user.role in [
-                        "superadmin"
-                    ] %}
 
                     <li>
 
-                        <a class="nav-link text-white"
-                        href="{{ url_for('main.audit_logs') }}">
-                        <i class="bi bi-file-earmark-text"></i>
+                        <a class="nav-link"
+                           href="{{ url_for('main.field_attend_compl') }}">
+
+                            <i class="bi bi-map"></i>
+
+                            Field Attendance Report
+
+                        </a>
+
+                    </li>
+
+                    <li>
+
+                        <a class="nav-link"
+                           href="{{ url_for('main.field_attendance_compliance') }}">
+
+                            <i class="bi bi-graph-up"></i>
+
+                            Today's Field Compliance
+
+                        </a>
+
+                    </li>
+
+                    {% if current_user.role == "superadmin" %}
+
+                    <li>
+
+                        <a class="nav-link"
+                           href="{{ url_for('main.audit_logs') }}">
+
+                            <i class="bi bi-journal-text"></i>
 
                             Audit Logs
 
                         </a>
 
                     </li>
+
                     {% endif %}
 
                 </ul>
@@ -112,11 +176,15 @@
             </div>
 
         </li>
+
+        {% endif %}
+
+        <!-- ATTENDANCE -->
+
         <li class="nav-item">
 
-            <a class="nav-link text-white"
-            href="{{ url_for('main.my_attendance') }}">
-
+            <a class="nav-link"
+               href="{{ url_for('main.my_attendance') }}">
                 <i class="bi bi-calendar-check"></i>
 
                 My Attendance
@@ -124,10 +192,26 @@
             </a>
 
         </li>
+
         <li class="nav-item">
 
-            <a class="nav-link text-white"
-            href="{{ url_for('main.profile') }}">
+            <a class="nav-link"
+               href="{{ url_for('main.field_checkpoint') }}">
+
+                <i class="bi bi-pin-map-fill"></i>
+
+                Field Attendance
+
+            </a>
+
+        </li>
+
+        <!-- ACCOUNT -->
+
+        <li class="nav-item">
+
+            <a class="nav-link"
+               href="{{ url_for('main.profile') }}">
 
                 <i class="bi bi-person-circle"></i>
 
@@ -136,32 +220,33 @@
             </a>
 
         </li>
-        
+
         <li class="nav-item">
-            <a class="nav-link text-white"
-            href="{{ url_for('main.change_password') }}">
+
+            <a class="nav-link"
+               href="{{ url_for('main.change_password') }}">
 
                 <i class="bi bi-key"></i>
 
                 Change Password
 
             </a>
+
         </li>
-        
-        
 
     </ul>
+
     <div class="sidebar-footer">
 
-    <a href="{{ url_for('main.logout') }}"
-       class="nav-link text-white">
+        <a class="nav-link"
+           href="{{ url_for('main.logout') }}">
 
-        <i class="bi bi-box-arrow-right"></i>
+            <i class="bi bi-box-arrow-right"></i>
 
-        Logout
+            Logout
 
-    </a>
+        </a>
 
-</div>
+    </div>
 
 </div>

@@ -2,11 +2,10 @@
 
 from flask import Blueprint, app, current_app, flash, render_template, request, redirect, url_for
 from flask_login import current_user, login_user, login_required, logout_user
-from app.models import Attendance, AuditLog, Department, User, Unit
+from app.models import Attendance, AuditLog, Department, User, Unit, FieldAttendance, UnitLocation
 from app import db
 from app.helpers import toast
 from app.utils.audit import log_audit
-from app.models import UnitLocation
 import re
 from datetime import datetime, date
 from app.utils.timezone import nigeria_now
@@ -22,10 +21,13 @@ from app.utils.geofence import (
 )
 from io import BytesIO
 import pandas as pd
+from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import (
     SimpleDocTemplate,
     Table,
-    TableStyle
+    TableStyle,
+    Paragraph,
+    Spacer
 )
 
 from reportlab.lib import colors
@@ -87,12 +89,15 @@ def login():
             username=username
         ).first()
 
-        # if user.must_change_password:
-        #     return redirect(
-        #         url_for(
-        #             "main.change_password"
-        #         )
-        #     )
+        if user.must_change_password:
+
+            login_user(user)
+
+            return redirect(
+                url_for(
+                    "main.change_password"
+                )
+            )
 
         if user and user.check_password(password):
 
@@ -133,14 +138,46 @@ def dashboard():
 
     total_departments = Department.query.count()
 
+    today = nigeria_now().date()
+    present_today = Attendance.query.filter(
+        Attendance.attendance_date == today).count()
+
+    completed_punches = FieldAttendance.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today
+
+    ).all()
+
+    completed_numbers = [
+
+        punch.checkpoint_number
+
+        for punch in completed_punches
+
+    ]
+    today_attendance = Attendance.query.filter_by(
+        user_id=current_user.id,
+        attendance_date=today
+    ).first()
+
     return render_template(
+
         "dashboard/index.html",
+
         total_units=total_units,
+        today_attendance = today_attendance,
+
         total_users=total_users,
-        total_departments=total_departments
+
+        total_departments=total_departments,
+
+        completed_numbers=completed_numbers,
+
+        completed_count=len(completed_numbers),
+        present_today=present_today
     )
-
-
 
 @main.route("/units")
 @login_required
@@ -989,7 +1026,6 @@ def profile():
     return render_template(
         "auth/profile.html"
     )
-
 @main.route("/attendance")
 @login_required
 def my_attendance():
@@ -1000,20 +1036,33 @@ def my_attendance():
         type=int
     )
 
+    query = Attendance.query.filter_by(
+        user_id=current_user.id
+    )
+
     records = query.order_by(
+
         Attendance.attendance_date.desc(),
+
         Attendance.id.desc()
+
     ).paginate(
+
         page=page,
+
         per_page=20,
+
         error_out=False
+
     )
 
     return render_template(
-        "attendance/list.html",
-        records=records
-    )
 
+        "attendance/list.html",
+
+        records=records
+
+    )
 #####################################################Check in Route########################################################
 
 @main.route(
@@ -2410,4 +2459,1162 @@ def field_checkpoint():
         completed=today_count,
 
         remaining=8 - today_count
+    )
+
+@main.route(
+    "/reports/field-attendance",
+    methods=["GET", "POST"]
+)
+@login_required
+@admin_required
+def field_attendance_report():
+
+    page = request.args.get(
+        "page",
+        1,
+        type=int
+    )
+
+    query = FieldAttendance.query
+
+    start_date = request.values.get(
+        "start_date"
+    )
+
+    end_date = request.values.get(
+        "end_date"
+    )
+
+    user_id = request.values.get(
+        "user_id"
+    )
+    unit_id = request.values.get(
+        "unit_id"
+    )
+    
+
+    if start_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date >= start_date
+        )
+
+    if end_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date <= end_date
+        )
+
+    if user_id:
+
+        query = query.filter(
+            FieldAttendance.user_id == user_id
+        )
+
+    # ==========================
+    # STATISTICS
+    # ==========================
+
+    total_punches = query.count()
+
+    today_punches = FieldAttendance.query.filter_by(
+        attendance_date=nigeria_now().date()
+    ).count()
+
+    active_staff = User.query.filter_by(
+        is_active_user=True
+    ).count()
+
+    compliance = round(
+
+        (today_punches / max(1, active_staff * 8)) * 100,
+
+        1
+
+    )
+
+    # ==========================
+    # RECORDS
+    # ==========================
+    if unit_id:
+
+        query = query.filter(
+            FieldAttendance.unit_id == unit_id
+        )
+
+    records = query.order_by(
+
+        FieldAttendance.attendance_date.desc(),
+
+        FieldAttendance.attendance_time.desc()
+
+    ).paginate(
+
+        page=page,
+
+        per_page=20,
+
+        error_out=False
+    )
+
+    users = User.query.order_by(
+        User.full_name
+    ).all()
+
+    units = Unit.query.filter_by(
+        status=True).order_by(
+            Unit.name).all()
+
+    return render_template(
+
+        "reports/field_attendance.html",
+
+        records=records,
+
+        users=users,
+
+        start_date=start_date,
+
+        end_date=end_date,
+
+        user_id=user_id,
+        units=units,
+        unit_id=unit_id,
+
+        total_punches=total_punches,
+
+        today_punches=today_punches,
+
+        active_staff=active_staff,
+
+        compliance=compliance
+    )
+@main.route(
+    "/reports/field-attendance/print"
+)
+@login_required
+@admin_required
+def print_field_attendance():
+
+    query = FieldAttendance.query
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    if start_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date >= start_date
+        )
+
+    if end_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date <= end_date
+        )
+
+    if user_id:
+
+        query = query.filter(
+            FieldAttendance.user_id == user_id
+        )
+
+    records = query.order_by(
+
+        FieldAttendance.attendance_date.desc(),
+
+        FieldAttendance.attendance_time.desc()
+
+    ).all()
+
+    return render_template(
+
+        "reports/field_attendance_print.html",
+
+        records=records,
+
+        generated_at=nigeria_now()
+    )
+
+@main.route(
+    "/reports/field-attendance/compliance"
+)
+@login_required
+@admin_required
+def field_attendance_compliance():
+
+    selected_date = request.args.get(
+        "report_date"
+    )
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    if selected_date:
+
+        report_date = datetime.strptime(
+            selected_date,
+            "%Y-%m-%d"
+        ).date()
+
+    else:
+
+        report_date = nigeria_now().date()
+
+    
+    staff_query = User.query.filter_by(
+        is_active_user=True
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+            User.unit_id == unit_id
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+            User.id == user_id
+        )
+
+    staff = staff_query.order_by(
+        User.full_name
+    ).all()
+
+    compliance_data = []
+
+    for user in staff:
+
+        punches = FieldAttendance.query.filter_by(
+
+            user_id=user.id,
+
+            attendance_date=report_date
+
+        ).all()
+
+        completed = [
+
+            punch.checkpoint_number
+
+            for punch in punches
+        ]
+
+        compliance = round(
+
+            (len(completed) / 8) * 100,
+
+            1
+        )
+
+        compliance_data.append({
+
+            "user": user,
+
+            "completed": completed,
+
+            "compliance": compliance
+
+        })
+    units = Unit.query.filter_by(
+        status=True
+    ).order_by(
+        Unit.name
+    ).all()
+
+    users = User.query.filter_by(
+        is_active_user=True
+    ).order_by(
+        User.full_name
+    ).all()
+
+
+    return render_template(
+
+        "reports/field_attendance_compliance.html",
+
+        compliance_data=compliance_data,
+
+        report_date=report_date,
+
+        users=users,
+
+        units=units,
+
+        user_id=user_id,
+
+        unit_id=unit_id
+    )
+
+#######################################################################################
+######################field attendance Report Export###################################
+######################################################################################
+
+@main.route(
+    "/reports/field-attendance/excel"
+)
+@login_required
+@admin_required
+def export_field_attendance_excel():
+
+    query = FieldAttendance.query
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    if start_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date >= start_date
+        )
+
+    if end_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date <= end_date
+        )
+
+    if user_id:
+
+        query = query.filter(
+            FieldAttendance.user_id == user_id
+        )
+
+    records = query.order_by(
+
+        FieldAttendance.attendance_date.desc(),
+
+        FieldAttendance.attendance_time.desc()
+
+    ).all()
+
+    data = []
+
+    for record in records:
+
+        data.append({
+
+            "Date":
+            record.attendance_date,
+
+            "Staff":
+            record.user.full_name,
+
+            "Punch":
+            record.checkpoint_number,
+
+            "Location":
+            record.location.name,
+
+            "Time":
+            record.attendance_time.strftime(
+                "%I:%M %p"
+            ),
+
+            "Distance (m)":
+            round(
+                record.distance,
+                2
+            ),
+
+            "Remarks":
+            record.remarks
+        })
+
+    df = pd.DataFrame(
+        data
+    )
+
+    output = BytesIO()
+
+    df.to_excel(
+
+        output,
+
+        index=False
+    )
+
+    output.seek(0)
+
+    return send_file(
+
+        output,
+
+        download_name=
+        "field_attendance.xlsx",
+
+        as_attachment=True
+    )
+@main.route(
+    "/reports/field-attendance/pdf"
+)
+@login_required
+@admin_required
+def export_field_attendance_pdf():
+
+    query = FieldAttendance.query
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    if start_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date >= start_date
+        )
+
+    if end_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date <= end_date
+        )
+
+    if user_id:
+
+        query = query.filter(
+            FieldAttendance.user_id == user_id
+        )
+
+    records = query.order_by(
+
+        FieldAttendance.attendance_date.desc(),
+
+        FieldAttendance.attendance_time.desc()
+
+    ).all()
+
+    output = BytesIO()
+
+    doc = SimpleDocTemplate(
+        output
+    )
+
+    data = [[
+
+        "Date",
+
+        "Staff",
+
+        "Punch",
+
+        "Location",
+
+        "Time",
+
+        "Distance",
+
+        "Remarks"
+
+    ]]
+
+    for record in records:
+
+        data.append([
+
+            str(
+                record.attendance_date
+            ),
+
+            record.user.full_name,
+
+            f"Punch {record.checkpoint_number}",
+
+            record.location.name,
+
+            record.attendance_time.strftime(
+                "%I:%M %p"
+            ),
+
+            f"{round(record.distance,2)} m",
+
+            record.remarks or ""
+        ])
+
+    table = Table(
+        data
+    )
+
+    table.setStyle(
+
+        TableStyle([
+
+            (
+                "BACKGROUND",
+                (0,0),
+                (-1,0),
+                colors.lightblue
+            ),
+
+            (
+                "GRID",
+                (0,0),
+                (-1,-1),
+                1,
+                colors.black
+            ),
+
+            (
+                "FONTSIZE",
+                (0,0),
+                (-1,-1),
+                8
+            )
+
+        ])
+    )
+
+    doc.build(
+        [table]
+    )
+
+    output.seek(0)
+
+    return send_file(
+
+        output,
+
+        download_name=
+        "field_attendance.pdf",
+
+        as_attachment=True,
+
+        mimetype=
+        "application/pdf"
+    )
+
+#########################################################################################################
+@main.route(
+    "/reports/field_attend_compl",
+    methods=["GET", "POST"]
+)
+@login_required
+@admin_required
+def field_attend_compl():
+
+    start_date = request.values.get(
+        "start_date"
+    )
+
+    end_date = request.values.get(
+        "end_date"
+    )
+
+    user_id = request.values.get(
+        "user_id"
+    )
+
+    unit_id = request.values.get(
+        "unit_id"
+    )
+
+    # ==========================
+    # ATTENDANCE QUERY
+    # ==========================
+
+    attendance_query = FieldAttendance.query
+
+    if start_date:
+
+        attendance_query = attendance_query.filter(
+            FieldAttendance.attendance_date >= start_date
+        )
+
+    if end_date:
+
+        attendance_query = attendance_query.filter(
+            FieldAttendance.attendance_date <= end_date
+        )
+
+    if user_id:
+
+        attendance_query = attendance_query.filter(
+            FieldAttendance.user_id == user_id
+        )
+
+    if unit_id:
+
+        attendance_query = attendance_query.filter(
+            FieldAttendance.unit_id == unit_id
+        )
+
+    # ==========================
+    # SUMMARY CARDS
+    # ==========================
+
+    actual_punches = attendance_query.count()
+
+    staff_query = User.query.filter_by(
+        is_active_user=True
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+            User.unit_id == unit_id
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+            User.id == user_id
+        )
+
+    active_staff = staff_query.count()
+    number_of_days = 1
+
+    if start_date and end_date:
+
+        start_dt = datetime.strptime(
+            start_date,
+            "%Y-%m-%d"
+        ).date()
+
+        end_dt = datetime.strptime(
+            end_date,
+            "%Y-%m-%d"
+        ).date()
+
+        number_of_days = (
+            end_dt - start_dt
+        ).days + 1
+
+    expected_punches = (active_staff * 8 * number_of_days)
+
+    compliance = round(
+
+        (
+            actual_punches /
+            max(1, expected_punches)
+        ) * 100,
+
+        1
+
+    )
+    
+    # ==========================
+    # STAFF SUMMARY REPORT
+    # ==========================
+
+    report_data = []
+
+    staff_list = staff_query.order_by(
+        User.full_name
+    ).all()
+
+    for staff in staff_list:
+
+        punches_query = FieldAttendance.query.filter(
+            FieldAttendance.user_id == staff.id
+        )
+
+        if start_date:
+
+            punches_query = punches_query.filter(
+                FieldAttendance.attendance_date >= start_date
+            )
+
+        if end_date:
+
+            punches_query = punches_query.filter(
+                FieldAttendance.attendance_date <= end_date
+            )
+
+        if unit_id:
+
+            punches_query = punches_query.filter(
+                FieldAttendance.unit_id == unit_id
+            )
+
+        total_staff_punches = punches_query.count()
+        staff_expected = ( 8 * number_of_days)
+        staff_compliance = round(
+            (
+                total_staff_punches /
+                max(1, staff_expected)
+            ) * 100,
+
+            1
+
+        )
+    ############################################3
+
+        report_data.append({
+
+            "staff_name": staff.full_name,
+
+            "unit_name": (
+                staff.unit.name
+                if hasattr(staff, "unit")
+                and staff.unit
+                else ""
+            ),
+
+            "total_punches": total_staff_punches,
+            "expected_punches": staff_expected,
+            "compliance": staff_compliance
+
+        })
+
+    # ==========================
+    # FILTER DROPDOWNS
+    # ==========================
+
+    users = User.query.order_by(
+        User.full_name
+    ).all()
+
+    units = Unit.query.filter_by(
+        status=True
+    ).order_by(
+        Unit.name
+    ).all()
+    selected_unit = "All Units"
+
+    if unit_id:
+
+        selected_unit_obj = Unit.query.get(unit_id)
+
+        if selected_unit_obj:
+
+            selected_unit = selected_unit_obj.name
+
+    return render_template(
+
+        "reports/field_attendance_compliance_page.html",
+
+        users=users,
+
+        units=units,
+
+        start_date=start_date,
+
+        end_date=end_date,
+
+        user_id=user_id,
+
+        unit_id=unit_id,
+
+        total_punches=actual_punches,
+
+        expected_punches=expected_punches,
+
+        active_staff=active_staff,
+
+        compliance=compliance,
+        selected_unit=selected_unit,
+        report_data=report_data
+
+    )
+
+
+@main.route(
+    "/reports/field-attendance/compliance/details"
+)
+@login_required
+@admin_required
+def field_attendance_compliance_details():
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    query = FieldAttendance.query
+
+    if start_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date >= start_date
+        )
+
+    if end_date:
+
+        query = query.filter(
+            FieldAttendance.attendance_date <= end_date
+        )
+
+    if unit_id:
+
+        query = query.filter(
+            FieldAttendance.unit_id == unit_id
+        )
+
+    if user_id:
+
+        query = query.filter(
+            FieldAttendance.user_id == user_id
+        )
+
+    attendance_records = query.order_by(
+        FieldAttendance.attendance_date.desc(),
+        FieldAttendance.attendance_time.desc()
+    ).all()
+
+    return render_template(
+        "reports/field_attendance_compliance_details.html",
+        attendance_records=attendance_records
+    )
+
+@main.route(
+    "/reports/field_attend_compl/excel"
+)
+@login_required
+@admin_required
+def field_attend_compl_excel():
+
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+    user_id = request.args.get("user_id")
+    unit_id = request.args.get("unit_id")
+
+    staff_query = User.query.filter_by(
+        is_active_user=True
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+            User.unit_id == unit_id
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+            User.id == user_id
+        )
+
+    report_data = []
+
+    for staff in staff_query.all():
+
+        punches_query = FieldAttendance.query.filter(
+            FieldAttendance.user_id == staff.id
+        )
+
+        if start_date:
+
+            punches_query = punches_query.filter(
+                FieldAttendance.attendance_date >= start_date
+            )
+
+        if end_date:
+
+            punches_query = punches_query.filter(
+                FieldAttendance.attendance_date <= end_date
+            )
+
+        total_punches = punches_query.count()
+
+        report_data.append({
+
+            "Staff": staff.full_name,
+
+            "Unit": staff.unit.name
+            if staff.unit else "",
+
+            "Total Punches": total_punches,
+
+            "Compliance %": round(
+                (total_punches / 8) * 100,
+                1
+            )
+
+        })
+
+    df = pd.DataFrame(report_data)
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(
+        output,
+        engine="openpyxl"
+    ) as writer:
+
+        df.to_excel(
+            writer,
+            index=False,
+            sheet_name="Compliance Report"
+        )
+
+    output.seek(0)
+
+    return send_file(
+
+        output,
+
+        as_attachment=True,
+
+        download_name="field_attendance_compliance.xlsx",
+
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+@main.route(
+    "/reports/field_attend_compl/pdf"
+)
+@login_required
+@admin_required
+def field_attend_compl_pdf():
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer
+    )
+
+    styles = getSampleStyleSheet()
+
+    elements = []
+
+    elements.append(
+
+        Paragraph(
+
+            "Field Attendance Compliance Report",
+
+            styles["Title"]
+
+        )
+
+    )
+
+    elements.append(
+        Spacer(1, 12)
+    )
+
+    data = [
+
+        [
+
+            "Staff",
+
+            "Unit",
+
+            "Punches",
+
+            "Compliance %"
+
+        ]
+
+    ]
+
+    staff_query = User.query.filter_by(
+        is_active_user=True
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+            User.unit_id == unit_id
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+            User.id == user_id
+        )
+
+    for staff in staff_query.all():
+
+        punches_query = FieldAttendance.query.filter(
+            FieldAttendance.user_id == staff.id
+        )
+
+        if start_date:
+
+            punches_query = punches_query.filter(
+                FieldAttendance.attendance_date >= start_date
+            )
+
+        if end_date:
+
+            punches_query = punches_query.filter(
+                FieldAttendance.attendance_date <= end_date
+            )
+
+        punches = punches_query.count()
+
+        compliance = round(
+            (punches / 8) * 100,
+            1
+        )
+
+        data.append([
+
+            staff.full_name,
+
+            staff.unit.name
+            if staff.unit else "",
+
+            punches,
+
+            f"{compliance}%"
+
+        ])
+
+    table = Table(data)
+
+    table.setStyle(
+
+        TableStyle([
+
+            ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+
+            ("GRID", (0, 0), (-1, -1), 1, colors.black)
+
+        ])
+
+    )
+
+    elements.append(table)
+
+    doc.build(elements)
+
+    buffer.seek(0)
+
+    return send_file(
+
+        buffer,
+
+        as_attachment=True,
+
+        download_name="field_attendance_compliance.pdf",
+
+        mimetype="application/pdf"
+
+    )
+
+@main.route(
+    "/users/reset-password/<int:id>",
+    methods=["GET", "POST"]
+)
+@login_required
+@admin_required
+def reset_user_password(id):
+
+    user = User.query.get_or_404(id)
+
+    if request.method == "POST":
+
+        new_password = request.form.get(
+            "password"
+        )
+
+        confirm_password = request.form.get(
+            "confirm_password"
+        )
+
+        if new_password != confirm_password:
+
+            toast(
+                "Passwords do not match",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.reset_user_password",
+                    id=id
+                )
+            )
+
+        user.set_password(
+            new_password
+        )
+
+        user.must_change_password = True
+
+        db.session.commit()
+
+        log_audit(
+
+            "User Management",
+
+            "Reset Password",
+
+            f"Password reset for {user.username}"
+
+        )
+
+        toast(
+
+            "Password reset successfully",
+
+            "success"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.users"
+            )
+        )
+
+    return render_template(
+
+        "users/reset_password.html",
+
+        user=user
+
     )

@@ -424,3 +424,4 @@ class FieldAttendance(db.Model):
         db.Float,
         nullable=True
     )
+    

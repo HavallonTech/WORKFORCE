@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}
+Field Attendance Compliance
+{% endblock %}
+
+{% block page_title %}
+Field Attendance Compliance Report
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+```
+<!-- Report Header -->
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-primary text-white">
+
+        <h5 class="mb-0">
+            Field Attendance Compliance Report
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="alert alert-info mb-0">
+
+            <strong>Report Date:</strong>
+
+            {{ report_date.strftime('%d-%b-%Y') if report_date else '' }}
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Summary Cards -->
+
+<div class="row mb-4">
+
+    <div class="col-md-4">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-body text-center">
+
+                <h6 class="text-muted">
+
+                    Staff Evaluated
+
+                </h6>
+
+                <h2>
+
+                    {{ compliance_data|length }}
+
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-body text-center">
+
+                <h6 class="text-muted">
+
+                    Fully Compliant
+
+                </h6>
+
+                <h2>
+
+                    {{ compliance_data
+                       | selectattr('compliance', 'equalto', 100)
+                       | list
+                       | length }}
+
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <div class="card shadow-sm border-0">
+
+            <div class="card-body text-center">
+
+                <h6 class="text-muted">
+
+                    Average Compliance
+
+                </h6>
+
+                <h2>
+
+                    {{ overall_compliance }}%
+
+                </h2>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Compliance Table -->
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-dark text-white">
+
+        Staff Compliance Details
+
+    </div>
+
+    <div class="card-body">
+
+        {% if compliance_data %}
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-hover align-middle">
+
+                <thead class="table-dark">
+
+                    <tr>
+
+                        <th width="25%">
+                            Staff
+                        </th>
+
+                        <th width="45%">
+                            Checkpoints
+                        </th>
+
+                        <th width="15%">
+                            Compliance
+                        </th>
+
+                        <th width="15%">
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in compliance_data %}
+
+                    <tr>
+
+                        <td>
+
+                            <strong>
+
+                                {{ row.user.full_name }}
+
+                            </strong>
+
+                        </td>
+
+                        <td>
+
+                            {% for punch in range(1, 9) %}
+
+                                {% if punch in row.completed %}
+
+                                    <span class="badge bg-success me-1">
+
+                                        {{ punch }}
+
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge bg-danger me-1">
+
+                                        {{ punch }}
+
+                                    </span>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </td>
+
+                        <td>
+
+                            <strong>
+
+                                {{ row.compliance }}%
+
+                            </strong>
+
+                        </td>
+
+                        <td>
+
+                            {% if row.compliance >= 100 %}
+
+                                <span class="badge bg-success">
+
+                                    Compliant
+
+                                </span>
+
+                            {% elif row.compliance >= 80 %}
+
+                                <span class="badge bg-warning text-dark">
+
+                                    Partial
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-danger">
+
+                                    Non-Compliant
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <div class="alert alert-warning text-center">
+
+            No compliance data found for the selected date.
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+```
+
+</div>
+
+{% endblock %}

@@ -108,6 +108,43 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 
 </script>
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        const sidebar =
+            document.getElementById(
+                "sidebar"
+            );
+
+        const button =
+            document.getElementById(
+                "toggleSidebar"
+            );
+
+        const mainContent =
+            document.querySelector(
+                ".main-content"
+            );
+
+        button.onclick = function(){
+
+            sidebar.classList.toggle(
+                "collapsed"
+            );
+
+            mainContent.classList.toggle(
+                "expanded"
+            );
+
+        };
+
+    }
+);
+
+</script>
 
 </body>
 
