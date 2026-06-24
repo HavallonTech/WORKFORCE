@@ -6,175 +6,423 @@ Dashboard
 
 {% block content %}
 
-<div class="row">
+<div class="container-fluid">
 
-    <div class="col-md-3">
+    <!-- WELCOME CARD -->
 
-        <div class="card shadow-sm">
+    <div class="card shadow-sm mb-4">
 
-            <div class="card-body">
+        <div class="card-body">
 
-                <h3>
-                    {{ total_users }}
-                </h3>
+            <div class="row align-items-center">
 
-                <p>
-                    Total Users
-                </p>
+                <div class="col-md-9">
 
-            </div>
+                    <h3>
 
-        </div>
+                        Welcome Back,
 
-    </div>
+                        {{ current_user.full_name }}
 
-    <div class="col-md-3">
+                    </h3>
 
-        <div class="card shadow-sm">
+                    <p class="text-muted mb-0">
 
-            <div class="card-body">
+                        {{ current_user.department.name if current_user.department else '' }}
 
-                <h3>
-                    {{ total_units }}
-                </h3>
+                    </p>
 
-                <p>
-                    Projects
-                </p>
+                    <p class="text-muted">
 
-            </div>
+                        {{ current_user.unit.name if current_user.unit else '' }}
 
-        </div>
-
-    </div>
-
-    <div class="col-md-3">
-
-        <div class="card shadow-sm">
-
-            <div class="card-body">
-
-                <h3>
-                    {{ total_departments }}
-                </h3>
-
-                <p>
-                    Departments
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="col-md-3">
-
-        <div class="card shadow-sm">
-
-            <div class="card-body">
-
-                <h3>
-                    {{ present_today }}
-                </h3>
-
-                <p>
-                    Present Today
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-    <div class="card shadow-sm mt-4">
-
-    <div class="card-header bg-primary text-white">
-
-        Field Attendance Today
-
-    </div>
-
-    <div class="card-body">
-
-        <h5>
-
-            Progress:
-
-            {{ completed_count }}/8
-
-        </h5>
-
-        <div class="row">
-
-            {% for punch in range(1,9) %}
-
-            <div class="col-md-3 mb-2">
-
-                {% if punch in completed_numbers %}
-
-                <div class="alert alert-success text-center mb-0">
-
-                    ✓ Punch {{ punch }}
+                    </p>
 
                 </div>
 
-                {% else %}
+                <div class="col-md-3 text-end">
 
-                <div class="alert alert-secondary text-center mb-0">
+                    {% if current_user.profile_image %}
 
-                    Punch {{ punch }}
+                    <img
+                        src="{{ url_for(
+                            'static',
+                            filename='uploads/profiles/' ~ current_user.profile_image
+                        ) }}"
+                        class="rounded-circle border"
+                        style="
+                            width:120px;
+                            height:120px;
+                            object-fit:cover;
+                        ">
+
+                    {% else %}
+
+                    <i
+                        class="bi bi-person-circle"
+                        style="
+                            font-size:120px;
+                            color:#6c757d;
+                        ">
+                    </i>
+
+                    {% endif %}
 
                 </div>
 
-                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- KPI CARDS -->
+
+    <div class="row mb-4">
+
+        <div class="col-md-3">
+
+            <div class="card border-success shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h2>
+
+                        {{ compliance }}%
+
+                    </h2>
+
+                    <small>
+
+                        Compliance
+
+                    </small>
+
+                </div>
 
             </div>
 
-            {% endfor %}
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card border-primary shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h2>
+
+                        {{ completed_count }}
+
+                        /
+
+                        {{ expected }}
+
+                    </h2>
+
+                    <small>
+
+                        Completed
+
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card border-warning shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h2>
+
+                        {{ remaining }}
+
+                    </h2>
+
+                    <small>
+
+                        Remaining
+
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card border-danger shadow-sm">
+
+                <div class="card-body text-center">
+
+                    <h2>
+
+                        {% if break_used %}
+
+                            Used
+
+                        {% else %}
+
+                            No
+
+                        {% endif %}
+
+                    </h2>
+
+                    <small>
+
+                        Break Status
+
+                    </small>
+
+                </div>
+
+            </div>
 
         </div>
 
     </div>
 
-    <div class="text-center mb-2">
+    <!-- PROGRESS -->
 
-        <span class="badge bg-warning text-dark">
+    <div class="card shadow-sm mb-4">
 
-            Next Action
+        <div class="card-header bg-primary text-white">
 
-        </span>
-
-    </div>
-
-    <div class="text-center mt-4">
-
-        <a
-            href="{{ url_for('main.field_checkpoint') }}"
-            class="btn btn-lg px-5 py-3 shadow-sm field-attendance-btn">
-
-            <i class="bi bi-geo-alt-fill me-2"></i>
-
-            Field Attendance Check-In
-
-        </a>
-
-    </div>
-
-    <br/>
-
-</div>
-        <div class="progress">
-
-                    <div
-                        class="progress-bar bg-success"
-                        style="width: {{ (completed_count / 8) * 100 }}%">
-
-                        {{ completed_count }}/8
-
-                    </div>
+            Today's Progress
 
         </div>
+
+        <div class="card-body">
+
+            <div class="progress" style="height:30px;">
+
+                <div
+                    class="progress-bar bg-success"
+                    role="progressbar"
+                    style="width: {{ compliance }}%;">
+
+                    {{ compliance }}%
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- CURRENT CHECKPOINT -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-success text-white">
+
+            Current Checkpoint
+
+        </div>
+
+        <div class="card-body">
+
+            {% if schedule %}
+
+            <h4>
+
+                Checkpoint
+
+                {{ schedule.checkpoint_number }}
+
+            </h4>
+
+            <p>
+
+                Open:
+
+                {{ schedule.start_time }}
+
+            </p>
+
+            <p>
+
+                Close:
+
+                {{ schedule.end_time }}
+
+            </p>
+
+            <a
+                href="{{ url_for('main.dynamic_checkin') }}"
+                class="btn btn-success">
+
+                Check In Now
+
+            </a>
+
+            {% else %}
+
+            <p class="text-muted">
+
+                No active checkpoint currently.
+
+            </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- TODAY ATTENDANCE -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-info text-white">
+
+            Today's Attendance
+
+        </div>
+
+        <div class="card-body">
+
+            {% if today_attendance %}
+
+            <table class="table">
+
+                <tr>
+
+                    <th>Clock In</th>
+
+                    <td>
+
+                        {{ today_attendance.clock_in }}
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Clock Out</th>
+
+                    <td>
+
+                        {{ today_attendance.clock_out or '-' }}
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Status</th>
+
+                    <td>
+
+                        {{ today_attendance.status }}
+
+                    </td>
+
+                </tr>
+
+            </table>
+
+            {% else %}
+
+            <p>
+
+                No attendance record for today.
+
+            </p>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <!-- RECENT CHECKPOINTS -->
+
+    <div class="card shadow-sm">
+
+        <div class="card-header bg-dark text-white">
+
+            Recent Attendance Activity
+
+        </div>
+
+        <div class="card-body">
+
+            <table class="table table-striped">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Date</th>
+
+                        <th>Checkpoint</th>
+
+                        <th>Time</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for item in recent_attendance %}
+
+                    <tr>
+
+                        <td>
+
+                            {{ item.attendance_date }}
+
+                        </td>
+
+                        <td>
+
+                            {{ item.checkpoint_number }}
+
+                        </td>
+
+                        <td>
+
+                            {{ item.attendance_time.strftime('%I:%M %p') }}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            <div class="text-end">
+
+                <a
+                    href="{{ url_for('main.attendance_history_v2') }}"
+                    class="btn btn-outline-primary">
+
+                    View Full History
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
 </div>
 
 {% endblock %}

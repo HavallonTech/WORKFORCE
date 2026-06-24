@@ -86,6 +86,9 @@ class User(UserMixin, db.Model):
         backref="user",
         lazy=True
     )
+    profile_image = db.Column(
+        db.String(255)
+    )
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 

@@ -41,10 +41,27 @@
 
         <li class="nav-item">
 
-            <a class="nav-link d-flex justify-content-between"
-               data-bs-toggle="collapse"
-               href="#administrationMenu"
-               role="button">
+            <a class="nav-link d-flex justify-content-between
+                {% if request.endpoint in [
+
+                    'main.units',
+                    'main.unit_locations',
+                    'main.departments',
+                    'main.users',
+                    'main.attendance_report',
+                    'main.attendance_dashboard_v2',
+                    'main.attendance_compliance_v2',
+                    'main.attendance_schedule_config',
+                    'main.generate_attendance_schedule',
+                    'main.audit_logs'
+
+                ] %}
+                active
+                {% endif %}
+                "
+                data-bs-toggle="collapse"
+                href="#administrationMenu"
+                role="button">
 
                 <span>
 
@@ -54,12 +71,46 @@
 
                 </span>
 
-                <i class="bi bi-caret-down-fill"></i>
+                <i class="bi bi-caret-down-fill
+                    {% if request.endpoint in [
+
+                        'main.units',
+                        'main.unit_locations',
+                        'main.departments',
+                        'main.users',
+                        'main.attendance_report',
+                        'main.attendance_dashboard_v2',
+                        'main.attendance_compliance_v2',
+                        'main.attendance_schedule_config',
+                        'main.generate_attendance_schedule',
+                        'main.audit_logs'
+
+                    ] %}
+                    rotate-caret
+                    {% endif %}
+                    "></i>
 
             </a>
 
-            <div class="collapse show"
-                 id="administrationMenu">
+            <div class="collapse
+                {% if request.endpoint in [
+
+                    'main.units',
+                    'main.unit_locations',
+                    'main.departments',
+                    'main.users',
+                    'main.attendance_report',
+                    'main.attendance_dashboard_v2',
+                    'main.attendance_compliance_v2',
+                    'main.attendance_schedule_config',
+                    'main.generate_attendance_schedule',
+                    'main.audit_logs'
+
+                ] %}
+                show
+                {% endif %}
+                "
+                id="administrationMenu">
 
                 <ul class="nav flex-column ms-3">
 
@@ -128,28 +179,55 @@
 
                     </li>
 
+                    <!-- FIELD ATTENDANCE V2 -->
+
                     <li>
 
                         <a class="nav-link"
-                           href="{{ url_for('main.field_attend_compl') }}">
+                        href="{{ url_for('main.attendance_dashboard_v2') }}">
 
-                            <i class="bi bi-map"></i>
+                            <i class="bi bi-speedometer2"></i>
 
-                            Field Attendance Report
+                            Attendance Dashboard V2
 
                         </a>
 
                     </li>
-                    
 
                     <li>
 
                         <a class="nav-link"
-                           href="{{ url_for('main.field_attendance_compliance') }}">
+                        href="{{ url_for('main.attendance_compliance_v2') }}">
 
-                            <i class="bi bi-graph-up"></i>
+                            <i class="bi bi-graph-up-arrow"></i>
 
-                            Today's Field Compliance
+                            Compliance Report V2
+
+                        </a>
+
+                    </li>
+
+                    <li>
+
+                        <a class="nav-link"
+                        href="{{ url_for('main.attendance_schedule_config') }}">
+
+                            <i class="bi bi-sliders"></i>
+
+                            Attendance Schedule Config
+
+                        </a>
+
+                    </li>
+
+                    <li>
+
+                        <a class="nav-link"
+                        href="{{ url_for('main.generate_attendance_schedule') }}">
+
+                            <i class="bi bi-calendar-event"></i>
+
+                            Generate Schedule
 
                         </a>
 
@@ -169,21 +247,6 @@
                         </a>
 
                     </li>
-                    <li>
-                        <a href="{{ url_for('main.attendance_schedule_config') }}"
-                            class="btn btn-primary">
-                                Attendance Schedule Config
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ url_for('main.generate_attendance_schedule') }}"
-                        class="btn btn-success">
-
-                            Generate Schedule
-
-                        </a>
-                    </li>
-
                     {% endif %}
 
                 </ul>
@@ -230,6 +293,31 @@
                 <i class="bi bi-pin-map-fill"></i>
 
                 Field Attendance
+
+            </a>
+
+        </li>
+        <li class="nav-item">
+
+            <a class="nav-link"
+            href="{{ url_for('main.dynamic_checkin') }}">
+
+                <i class="bi bi-camera-fill"></i>
+
+                Field Check In V2
+
+            </a>
+
+        </li>
+
+        <li class="nav-item">
+
+            <a class="nav-link"
+            href="{{ url_for('main.attendance_history_v2') }}">
+
+                <i class="bi bi-clock-history"></i>
+
+                Attendance History V2
 
             </a>
 

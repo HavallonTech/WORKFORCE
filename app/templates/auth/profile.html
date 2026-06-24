@@ -5,62 +5,323 @@ My Profile
 {% endblock %}
 
 {% block content %}
+<style>
 
-<div class="card shadow-sm">
+.profile-card{
 
-    <div class="card-body">
+    border:none;
 
-        <h3 class="mb-4">
-            My Profile
-        </h3>
+    border-radius:20px;
 
-        <table class="table">
+    overflow:hidden;
 
-            <tr>
-                <th>Staff ID</th>
-                <td>{{ current_user.staff_id }}</td>
-            </tr>
+}
 
-            <tr>
-                <th>Full Name</th>
-                <td>{{ current_user.full_name }}</td>
-            </tr>
+.profile-header{
 
-            <tr>
-                <th>Username</th>
-                <td>{{ current_user.username }}</td>
-            </tr>
+    background:linear-gradient(
+        135deg,
+        #0d6efd,
+        #084298
+    );
 
-            <tr>
-                <th>Email</th>
-                <td>{{ current_user.email }}</td>
-            </tr>
+    color:white;
 
-            <tr>
-                <th>Phone</th>
-                <td>{{ current_user.phone }}</td>
-            </tr>
+    padding:25px;
 
-            <tr>
-                <th>Project</th>
-                <td>
-                    {{ current_user.unit.name if current_user.unit else '' }}
-                </td>
-            </tr>
+}
 
-            <tr>
-                <th>Department</th>
-                <td>
-                    {{ current_user.department.name if current_user.department else '' }}
-                </td>
-            </tr>
+.profile-avatar{
 
-            <tr>
-                <th>Role</th>
-                <td>{{ current_user.role }}</td>
-            </tr>
+    width:180px;
 
-        </table>
+    height:180px;
+
+    object-fit:cover;
+
+    border-radius:50%;
+
+    border:5px solid white;
+
+    box-shadow:0 5px 15px rgba(0,0,0,.2);
+
+}
+
+.profile-side-card{
+
+    border:none;
+
+    border-radius:15px;
+
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+
+}
+
+.info-box{
+
+    background:#f8f9fa;
+
+    padding:12px;
+
+    border-radius:10px;
+
+    margin-bottom:10px;
+
+}
+
+.info-label{
+
+    font-size:.85rem;
+
+    color:#6c757d;
+
+}
+
+.info-value{
+
+    font-weight:600;
+
+}
+
+.form-control{
+
+    border-radius:10px;
+
+}
+
+.save-btn{
+
+    border-radius:10px;
+
+    padding:10px 25px;
+
+}
+
+</style>
+<div class="row">
+
+    <!-- Profile Photo -->
+
+    <div class="col-md-4">
+
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center">
+
+                {% if current_user.profile_image %}
+
+                <img
+                    src="{{ url_for(
+                        'static',
+                        filename='uploads/profiles/' ~ current_user.profile_image
+                    ) }}"
+                    class="rounded-circle img-thumbnail mb-3"
+                    style="width:180px;height:180px;object-fit:cover;">
+
+                {% else %}
+
+                <img
+                    src="{{ url_for(
+                        'static',
+                        filename='images/default-avatar.png'
+                    ) }}"
+                    class="rounded-circle img-thumbnail mb-3"
+                    style="width:180px;height:180px;object-fit:cover;">
+
+                {% endif %}
+
+                <h4>
+
+                    {{ current_user.full_name }}
+
+                </h4>
+
+                <p class="text-muted">
+
+                    {{ current_user.role|title }}
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Profile Form -->
+
+    <div class="col-md-8">
+
+        <div class="card shadow-sm">
+
+            <div class="card-header bg-primary text-white">
+
+                My Profile
+
+            </div>
+
+            <div class="card-body">
+
+                <form
+                    method="POST"
+                    enctype="multipart/form-data"
+                    action="{{ url_for('main.profile') }}">
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label">
+
+                                Staff ID
+
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ current_user.staff_id }}"
+                                readonly>
+
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label">
+
+                                Username
+
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ current_user.username }}"
+                                readonly>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Full Name
+
+                        </label>
+
+                        <input
+                            type="text"
+                            name="full_name"
+                            class="form-control"
+                            value="{{ current_user.full_name }}">
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Email
+
+                        </label>
+
+                        <input
+                            type="email"
+                            name="email"
+                            class="form-control"
+                            value="{{ current_user.email or '' }}">
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Phone
+
+                        </label>
+
+                        <input
+                            type="text"
+                            name="phone"
+                            class="form-control"
+                            value="{{ current_user.phone or '' }}">
+
+                    </div>
+
+                    <div class="row">
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label">
+
+                                Project
+
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ current_user.unit.name if current_user.unit else '' }}"
+                                readonly>
+
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+
+                            <label class="form-label">
+
+                                Department
+
+                            </label>
+
+                            <input
+                                type="text"
+                                class="form-control"
+                                value="{{ current_user.department.name if current_user.department else '' }}"
+                                readonly>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+
+                            Upload Passport Photo
+
+                        </label>
+
+                        <input
+                            type="file"
+                            name="profile_image"
+                            class="form-control"
+                            accept=".jpg,.jpeg,.png">
+
+                    </div>
+
+                    <div class="text-end">
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary">
+
+                            <i class="bi bi-save"></i>
+
+                            Save Changes
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
 
     </div>
 

@@ -144,51 +144,122 @@ def login():
 @login_required
 def dashboard():
 
-    total_units = Unit.query.count()
+    if current_user.role in [
 
-    total_users = User.query.count()
+        "admin",
 
-    total_departments = Department.query.count()
+        "superadmin"
+
+    ]:
+
+        return redirect(
+            url_for(
+                "main.attendance_dashboard_v2"
+            )
+        )
 
     today = nigeria_now().date()
-    present_today = Attendance.query.filter(
-        Attendance.attendance_date == today).count()
 
-    completed_punches = FieldAttendance.query.filter_by(
+    total_checkpoints = 0
+
+    completed_count = DynamicAttendance.query.filter_by(
 
         user_id=current_user.id,
 
         attendance_date=today
 
-    ).all()
+    ).count()
 
-    completed_numbers = [
+    break_used = AttendanceBreak.query.filter_by(
 
-        punch.checkpoint_number
+        user_id=current_user.id,
 
-        for punch in completed_punches
+        attendance_date=today
 
-    ]
+    ).first()
+
+    config = AttendanceScheduleConfig.query.filter_by(
+
+        unit_id=current_user.unit_id
+
+    ).first()
+
+    if config:
+
+        total_checkpoints = config.total_checkpoints
+
+    expected = total_checkpoints
+
+    if break_used:
+
+        expected = max(
+            0,
+            expected - 1
+        )
+
+    compliance = round(
+
+        (
+            completed_count /
+            max(1, expected)
+        ) * 100,
+
+        1
+
+    )
+
+    remaining = max(
+
+        0,
+
+        expected - completed_count
+
+    )
+
+    schedule = get_current_checkpoint(
+
+        current_user.unit_id
+
+    )
+
+    recent_attendance = DynamicAttendance.query.filter_by(
+
+        user_id=current_user.id
+
+    ).order_by(
+
+        DynamicAttendance.id.desc()
+
+    ).limit(5).all()
+
     today_attendance = Attendance.query.filter_by(
+
         user_id=current_user.id,
+
         attendance_date=today
+
     ).first()
 
     return render_template(
 
         "dashboard/index.html",
 
-        total_units=total_units,
-        today_attendance = today_attendance,
+        compliance=compliance,
 
-        total_users=total_users,
+        completed_count=completed_count,
 
-        total_departments=total_departments,
+        expected=expected,
 
-        completed_numbers=completed_numbers,
+        remaining=remaining,
 
-        completed_count=len(completed_numbers),
-        present_today=present_today
+        break_used=break_used,
+
+        schedule=schedule,
+
+        today_attendance=today_attendance,
+
+        recent_attendance=recent_attendance
+
     )
 
 @main.route("/units")
@@ -1031,9 +1102,97 @@ def change_password():
         "auth/change_password.html"
     )
 
-@main.route("/profile")
+@main.route(
+    "/profile",
+    methods=["GET", "POST"]
+)
 @login_required
 def profile():
+
+    if request.method == "POST":
+
+        current_user.full_name = request.form.get(
+            "full_name"
+        )
+
+        current_user.email = request.form.get(
+            "email"
+        )
+
+        current_user.phone = request.form.get(
+            "phone"
+        )
+
+        file = request.files.get(
+            "profile_image"
+        )
+
+        if file and file.filename:
+
+            from werkzeug.utils import secure_filename
+
+            extension = file.filename.rsplit(
+                ".",
+                1
+            )[1].lower()
+
+            filename = (
+                f"user_{current_user.id}.{extension}"
+            )
+
+            upload_folder = os.path.join(
+
+                current_app.root_path,
+
+                "static",
+
+                "uploads",
+
+                "profiles"
+
+            )
+
+            os.makedirs(
+                upload_folder,
+                exist_ok=True
+            )
+
+            file.save(
+
+                os.path.join(
+                    upload_folder,
+                    filename
+                )
+
+            )
+
+            current_user.profile_image = filename
+
+        db.session.commit()
+
+        log_audit(
+
+            "Profile",
+
+            "Update",
+
+            f"{current_user.username} updated profile"
+
+        )
+
+        toast(
+
+            "Profile updated successfully",
+
+            "success"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.profile"
+            )
+        )
 
     return render_template(
         "auth/profile.html"
