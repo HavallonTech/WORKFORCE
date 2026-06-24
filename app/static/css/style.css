@@ -222,3 +222,68 @@ body{
 
     color:black;
 }
+.page-header{
+
+    background: linear-gradient(
+        135deg,
+        #0d6efd,
+        #084298
+    );
+
+    color:white;
+
+    padding:20px 25px;
+
+    border-radius:15px;
+
+    margin-bottom:20px;
+
+}
+
+.page-header h2{
+
+    margin:0;
+
+    font-weight:600;
+
+}
+
+.header-avatar{
+
+    width:55px;
+
+    height:55px;
+
+    border-radius:50%;
+
+    object-fit:cover;
+
+    border:3px solid white;
+
+}
+
+.header-avatar-icon{
+
+    font-size:55px;
+
+    color:white;
+
+}
+
+.footer{
+
+    background:#ffffff;
+
+    border-top:1px solid #dee2e6;
+
+    padding:15px 20px;
+
+    margin-top:20px;
+
+    border-radius:10px;
+
+    color:#6c757d;
+
+    font-size:.9rem;
+
+}
