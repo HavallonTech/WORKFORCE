@@ -15,6 +15,8 @@ from datetime import (
     timedelta,
     date
 )
+from openpyxl import Workbook
+import math
 from app.utils.timezone import nigeria_now
 import os
 import base64
@@ -4915,6 +4917,8 @@ def attendance_compliance_v2():
         unit_id=unit_id
 
     )
+
+
 @main.route(
     "/field-attendance-v2/dashboard"
 )
@@ -4922,37 +4926,64 @@ def attendance_compliance_v2():
 @admin_required
 def attendance_dashboard_v2():
 
-    today = nigeria_now().date()
+    # =====================================
+    # FILTERS
+    # =====================================
+
+    selected_date = request.args.get(
+        "report_date"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    status_filter = request.args.get(
+        "status"
+    )
+
+    if selected_date:
+
+        today = datetime.strptime(
+
+            selected_date,
+
+            "%Y-%m-%d"
+
+        ).date()
+
+    else:
+
+        today = nigeria_now().date()
+
+    # =====================================
+    # KPI COUNTERS
+    # =====================================
 
     total_staff = User.query.filter_by(
         is_active_user=True
     ).count()
 
-    checked_in = db.session.query(
-        DynamicAttendance.user_id
-    ).filter(
-        DynamicAttendance.attendance_date == today
-    ).distinct().count()
-
-    breaks_used = AttendanceBreak.query.filter_by(
-        attendance_date=today
-    ).count()
-
-    pending = max(
-        0,
-        total_staff - checked_in
-    )
-
-    units = Unit.query.filter_by(
-        status=True
-    ).all()
-
-    project_summary = []
-
     excellent_count = 0
     good_count = 0
     fair_count = 0
     poor_count = 0
+
+    # =====================================
+    # PROJECT SUMMARY
+    # =====================================
+
+    units = Unit.query.filter_by(
+        status=True
+    ).order_by(
+        Unit.name
+    ).all()
+
+    project_summary = []
 
     for unit in units:
 
@@ -4964,11 +4995,11 @@ def attendance_dashboard_v2():
 
         ).all()
 
-        total_compliance = 0
-
         staff_count = len(
             staff_members
         )
+
+        total_compliance = 0
 
         for staff in staff_members:
 
@@ -4994,13 +5025,15 @@ def attendance_dashboard_v2():
 
             ).first()
 
-            if config:
+            expected = (
 
-                expected = config.total_checkpoints
+                config.total_checkpoints
 
-            else:
+                if config
 
-                expected = 0
+                else 0
+
+            )
 
             if breaks:
 
@@ -5057,6 +5090,242 @@ def attendance_dashboard_v2():
 
         })
 
+    # =====================================
+    # PROJECT PAGINATION
+    # =====================================
+
+    project_page = request.args.get(
+
+        "project_page",
+
+        1,
+
+        type=int
+
+    )
+
+    projects_per_page = 5
+
+    project_total = len(
+        project_summary
+    )
+
+    project_total_pages = math.ceil(
+
+        project_total /
+
+        projects_per_page
+
+    )
+
+    start = (
+
+        (project_page - 1)
+
+        * projects_per_page
+
+    )
+
+    end = start + projects_per_page
+
+    project_summary = project_summary[
+        start:end
+    ]
+
+    # =====================================
+    # STAFF QUERY
+    # =====================================
+
+    staff_query = User.query.filter_by(
+
+        is_active_user=True
+
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+
+            User.unit_id == unit_id
+
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+
+            User.id == user_id
+
+        )
+
+    staff_query = staff_query.order_by(
+
+        User.full_name
+
+    )
+
+    page = request.args.get(
+
+        "page",
+
+        1,
+
+        type=int
+
+    )
+
+    staff_pagination = staff_query.paginate(
+
+        page=page,
+
+        per_page=10,
+
+        error_out=False
+
+    )
+
+    # =====================================
+    # STAFF COMPLIANCE
+    # =====================================
+
+    staff_compliance = []
+
+    for staff in staff_pagination.items:
+
+        punches = DynamicAttendance.query.filter_by(
+
+            user_id=staff.id,
+
+            attendance_date=today
+
+        ).count()
+
+        breaks = AttendanceBreak.query.filter_by(
+
+            user_id=staff.id,
+
+            attendance_date=today
+
+        ).count()
+
+        config = AttendanceScheduleConfig.query.filter_by(
+
+            unit_id=staff.unit_id
+
+        ).first()
+
+        expected = (
+
+            config.total_checkpoints
+
+            if config
+
+            else 0
+
+        )
+
+        if breaks:
+
+            expected = max(
+                0,
+                expected - 1
+            )
+
+        compliance = round(
+
+            (
+                punches /
+                max(1, expected)
+            ) * 100,
+
+            1
+
+        )
+
+        if compliance >= 90:
+
+            status = "Excellent"
+
+        elif compliance >= 75:
+
+            status = "Good"
+
+        elif compliance >= 50:
+
+            status = "Fair"
+
+        else:
+
+            status = "Poor"
+
+        if status_filter:
+
+            if status != status_filter:
+
+                continue
+
+        staff_compliance.append({
+
+            "staff_name": staff.full_name,
+
+            "project": (
+                staff.unit.name
+                if staff.unit
+                else ""
+            ),
+
+            "completed": punches,
+
+            "expected": expected,
+
+            "compliance": compliance,
+
+            "status": status
+
+        })
+
+    # =====================================
+    # DROPDOWNS
+    # =====================================
+
+    users = User.query.filter_by(
+
+        is_active_user=True
+
+    ).order_by(
+
+        User.full_name
+
+    ).all()
+    total_compliance = (
+
+        excellent_count * 100 +
+
+        good_count * 75 +
+
+        fair_count * 50 +
+
+        poor_count * 25
+
+    )
+
+    average_compliance = round(
+
+        total_compliance /
+
+        max(
+            1,
+            total_staff
+        ),
+
+        1
+
+    )
+
+    # =====================================
+    # AUDIT LOG
+    # =====================================
+
     log_audit(
 
         "Field Attendance V2",
@@ -5067,18 +5336,519 @@ def attendance_dashboard_v2():
 
     )
 
+    # =====================================
+    # RENDER
+    # =====================================
+
     return render_template(
 
         "field_attendance_v2/dashboard.html",
 
         total_staff=total_staff,
-        checked_in=checked_in,
-        breaks_used=breaks_used,
-        pending=pending,
-        project_summary=project_summary,
+
         excellent_count=excellent_count,
+
         good_count=good_count,
+
         fair_count=fair_count,
-        poor_count=poor_count
+
+        poor_count=poor_count,
+
+        today=today,
+        average_compliance=average_compliance,
+        report_date=today,
+
+        project_summary=project_summary,
+
+        project_page=project_page,
+
+        project_total_pages=project_total_pages,
+
+        staff_compliance=staff_compliance,
+
+        staff_pagination=staff_pagination,
+
+        units=units,
+
+        users=users,
+
+        unit_id=unit_id,
+
+        user_id=user_id,
+
+        status_filter=status_filter
+
+    )
+
+@main.route(
+    "/field-attendance-v2/dashboard/excel"
+)
+@login_required
+@admin_required
+def dashboard_export_excel():
+
+    selected_date = request.args.get(
+        "report_date"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    if selected_date:
+
+        report_date = datetime.strptime(
+            selected_date,
+            "%Y-%m-%d"
+        ).date()
+
+    else:
+
+        report_date = nigeria_now().date()
+
+    wb = Workbook()
+
+    ws = wb.active
+
+    ws.title = "Dashboard Report"
+
+    headers = [
+
+        "Staff",
+
+        "Project",
+
+        "Completed",
+
+        "Expected",
+
+        "Compliance %",
+
+        "Status"
+
+    ]
+
+    for col_num, header in enumerate(
+        headers,
+        start=1
+    ):
+
+        ws.cell(
+            row=1,
+            column=col_num,
+            value=header
+        )
+
+    row_num = 2
+
+    staff_query = User.query.filter_by(
+        is_active_user=True
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+            User.unit_id == unit_id
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+            User.id == user_id
+        )
+
+    for staff in staff_query.all():
+
+        punches = DynamicAttendance.query.filter_by(
+
+            user_id=staff.id,
+
+            attendance_date=report_date
+
+        ).count()
+
+        breaks = AttendanceBreak.query.filter_by(
+
+            user_id=staff.id,
+
+            attendance_date=report_date
+
+        ).count()
+
+        config = AttendanceScheduleConfig.query.filter_by(
+
+            unit_id=staff.unit_id
+
+        ).first()
+
+        expected = (
+
+            config.total_checkpoints
+
+            if config
+
+            else 0
+
+        )
+
+        if breaks:
+
+            expected = max(
+                0,
+                expected - 1
+            )
+
+        compliance = round(
+
+            (
+                punches /
+                max(1, expected)
+            ) * 100,
+
+            1
+
+        )
+
+        if compliance >= 90:
+
+            status = "Excellent"
+
+        elif compliance >= 75:
+
+            status = "Good"
+
+        elif compliance >= 50:
+
+            status = "Fair"
+
+        else:
+
+            status = "Poor"
+
+        ws.append([
+
+            staff.full_name,
+
+            staff.unit.name
+            if staff.unit
+            else "",
+
+            punches,
+
+            expected,
+
+            compliance,
+
+            status
+
+        ])
+
+        row_num += 1
+
+    output = BytesIO()
+
+    wb.save(
+        output
+    )
+
+    output.seek(0)
+
+    return send_file(
+
+        output,
+
+        download_name=(
+            f"dashboard_report_"
+            f"{report_date}.xlsx"
+        ),
+
+        as_attachment=True,
+
+        mimetype=(
+            "application/"
+            "vnd.openxmlformats-"
+            "officedocument."
+            "spreadsheetml.sheet"
+        )
+
+    )
+@main.route(
+    "/field-attendance-v2/dashboard/pdf"
+)
+@login_required
+@admin_required
+def dashboard_export_pdf():
+
+    selected_date = request.args.get(
+        "report_date"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    status_filter = request.args.get(
+        "status"
+    )
+
+    if selected_date:
+
+        report_date = datetime.strptime(
+            selected_date,
+            "%Y-%m-%d"
+        ).date()
+
+    else:
+
+        report_date = nigeria_now().date()
+
+    # ==========================
+    # STAFF FILTERS
+    # ==========================
+
+    staff_query = User.query.filter_by(
+        is_active_user=True
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+            User.unit_id == unit_id
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+            User.id == user_id
+        )
+
+    staff_query = staff_query.order_by(
+        User.full_name
+    )
+
+    # ==========================
+    # PDF
+    # ==========================
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer
+    )
+
+    styles = getSampleStyleSheet()
+
+    elements = []
+
+    elements.append(
+
+        Paragraph(
+
+            f"WorkForce Dashboard Report - {report_date}",
+
+            styles["Heading1"]
+
+        )
+
+    )
+
+    elements.append(
+        Spacer(1, 12)
+    )
+
+    data = [[
+
+        "Staff",
+
+        "Project",
+
+        "Completed",
+
+        "Expected",
+
+        "Compliance %",
+
+        "Status"
+
+    ]]
+
+    for staff in staff_query.all():
+
+        punches = DynamicAttendance.query.filter_by(
+
+            user_id=staff.id,
+
+            attendance_date=report_date
+
+        ).count()
+
+        breaks = AttendanceBreak.query.filter_by(
+
+            user_id=staff.id,
+
+            attendance_date=report_date
+
+        ).count()
+
+        config = AttendanceScheduleConfig.query.filter_by(
+
+            unit_id=staff.unit_id
+
+        ).first()
+
+        expected = (
+
+            config.total_checkpoints
+
+            if config
+
+            else 0
+
+        )
+
+        if breaks:
+
+            expected = max(
+                0,
+                expected - 1
+            )
+
+        compliance = round(
+
+            (
+                punches /
+                max(1, expected)
+            ) * 100,
+
+            1
+
+        )
+
+        if compliance >= 90:
+
+            status = "Excellent"
+
+        elif compliance >= 75:
+
+            status = "Good"
+
+        elif compliance >= 50:
+
+            status = "Fair"
+
+        else:
+
+            status = "Poor"
+
+        # ==========================
+        # STATUS FILTER
+        # ==========================
+
+        if status_filter:
+
+            if status != status_filter:
+
+                continue
+
+        data.append([
+
+            staff.full_name,
+
+            staff.unit.name
+            if staff.unit
+            else "",
+
+            str(punches),
+
+            str(expected),
+
+            f"{compliance}%",
+
+            status
+
+        ])
+
+    table = Table(data)
+
+    table.setStyle(
+
+        TableStyle([
+
+            (
+                "BACKGROUND",
+                (0, 0),
+                (-1, 0),
+                colors.lightblue
+            ),
+
+            (
+                "TEXTCOLOR",
+                (0, 0),
+                (-1, 0),
+                colors.black
+            ),
+
+            (
+                "GRID",
+                (0, 0),
+                (-1, -1),
+                1,
+                colors.black
+            ),
+
+            (
+                "FONTNAME",
+                (0, 0),
+                (-1, 0),
+                "Helvetica-Bold"
+            )
+
+        ])
+
+    )
+
+    elements.append(
+        table
+    )
+
+    doc.build(
+        elements
+    )
+
+    buffer.seek(0)
+
+    log_audit(
+
+        "Field Attendance V2",
+
+        "PDF Export",
+
+        f"{current_user.username} exported dashboard PDF"
+
+    )
+
+    return send_file(
+
+        buffer,
+
+        as_attachment=True,
+
+        download_name=(
+
+            f"dashboard_report_"
+
+            f"{report_date}.pdf"
+
+        ),
+
+        mimetype="application/pdf"
 
     )
