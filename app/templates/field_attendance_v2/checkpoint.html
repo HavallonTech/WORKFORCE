@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}
+Field Attendance V2
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+    <div class="card border-primary shadow-sm mb-3">
+
+    <div class="card-header bg-primary text-white text-center">
+
+        <strong>
+
+            My Today's Progress
+
+        </strong>
+
+    </div>
+
+    <div class="card-body text-center">
+
+        <div class="row">
+
+            <div class="col-md-4">
+
+                <h4 class="text-success">
+
+                    {{ completed_checkpoints }}
+
+                </h4>
+
+                <small>
+
+                    Completed
+
+                </small>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <h4 class="text-danger">
+
+                    {{ remaining_checkpoints }}
+
+                </h4>
+
+                <small>
+
+                    Remaining
+
+                </small>
+
+            </div>
+
+            <div class="col-md-4">
+
+                <h4 class="text-primary">
+
+                    {{ compliance }}%
+
+                </h4>
+
+                <small>
+
+                    Compliance
+
+                </small>
+
+            </div>
+
+        </div>
+
+        {% if todays_break %}
+
+        <hr>
+
+        <span class="badge bg-warning text-dark">
+
+            Break Used:
+            Checkpoint
+            {{ todays_break.checkpoint_number }}
+
+        </span>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+<!--###############################################################################################################-->
+
+    <div class="card-header bg-success text-white">
+
+        Active Checkpoint
+
+    </div>
+
+
+    <div class="card-body">
+
+        <h3>
+
+            Checkpoint
+            {{ schedule.checkpoint_number }}
+
+        </h3>
+
+        <p>
+
+            Opens:
+            {{ schedule.open_time.strftime('%I:%M %p') }}
+
+        </p>
+
+        <p>
+
+            Closes:
+            {{ schedule.close_time.strftime('%I:%M %p') }}
+
+        </p>
+        <div class="alert alert-info">
+
+            Current Time:
+            <strong>
+
+                {{ current_time }}
+
+            </strong>
+
+        </div>
+
+        <div class="mt-3">
+
+            <a href="{{ url_for(
+                    'main.dynamic_checkin'
+                ) }}"
+            class="btn btn-success">
+
+                Check In Now
+
+            </a>
+            
+            {% if not todays_break %}
+            <a href="{{ url_for(
+                    'main.use_break',
+                    checkpoint_number=schedule.checkpoint_number
+                ) }}"
+            class="btn btn-warning"
+            onclick="confirmBreak(event)">
+
+                Use As Break
+
+            </a>
+
+            {% else %}
+
+            <a href="#"
+            class="btn btn-warning">
+
+                Break Checked
+
+            </a>
+
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -50,7 +50,7 @@
 
                     <i class="bi bi-gear"></i>
 
-                    Administration
+                    Clients
 
                 </span>
 
@@ -70,7 +70,7 @@
 
                             <i class="bi bi-building"></i>
 
-                            Units
+                            Projects
 
                         </a>
 
@@ -83,7 +83,7 @@
 
                             <i class="bi bi-geo-alt"></i>
 
-                            Unit Locations
+                            Project Locations
 
                         </a>
 
@@ -140,6 +140,7 @@
                         </a>
 
                     </li>
+                    
 
                     <li>
 
@@ -168,10 +169,25 @@
                         </a>
 
                     </li>
+                    <li>
+                        <a href="{{ url_for('main.attendance_schedule_config') }}"
+                            class="btn btn-primary">
+                                Attendance Schedule Config
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('main.generate_attendance_schedule') }}"
+                        class="btn btn-success">
+
+                            Generate Schedule
+
+                        </a>
+                    </li>
 
                     {% endif %}
 
                 </ul>
+                
 
             </div>
 
@@ -188,6 +204,19 @@
                 <i class="bi bi-calendar-check"></i>
 
                 My Attendance
+
+            </a>
+
+        </li>
+        <li>
+
+            <a
+                class="dropdown-item"
+                href="{{ url_for('main.attendance_history_v2') }}">
+
+                <i class="bi bi-clock-history"></i>
+
+                My Attendance History
 
             </a>
 
@@ -233,6 +262,7 @@
             </a>
 
         </li>
+        
 
     </ul>
 

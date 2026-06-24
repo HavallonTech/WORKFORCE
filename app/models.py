@@ -1,6 +1,9 @@
 from app import db
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from app.utils.timezone import nigeria_now
+from datetime import datetime
+
 
 
 class User(UserMixin, db.Model):
@@ -424,4 +427,224 @@ class FieldAttendance(db.Model):
         db.Float,
         nullable=True
     )
+
+class AttendanceBreak(db.Model):
+
+    __tablename__ = "attendance_break"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
+    attendance_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    checkpoint_number = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+    users = db.relationship(
+        "User",
+        backref="attendance_breaks"
+    )
+    __table_args__ = (
+
+        db.UniqueConstraint(
+            "user_id",
+            "attendance_date",
+            name="uq_break_per_day"
+        ),
+
+    )
+
+class AttendanceSchedule(db.Model):
+
+    __tablename__ = "attendance_schedule"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+    unit_id = db.Column(
+        db.Integer,
+        db.ForeignKey("units.id"),
+        nullable=False
+    )
+
+    checkpoint_number = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    open_time = db.Column(
+        db.Time,
+        nullable=False
+    )
+
+    close_time = db.Column(
+        db.Time,
+        nullable=False
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+    unit = db.relationship(
+        "Unit",
+        backref="attendance_schedules"
+    )
     
+class DynamicAttendance(db.Model):
+
+    __tablename__ = "dynamic_attendance"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
+    )
+
+    unit_id = db.Column(
+        db.Integer,
+        db.ForeignKey("units.id"),
+        nullable=False
+    )
+
+    checkpoint_number = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    attendance_date = db.Column(
+        db.Date,
+        nullable=False
+    )
+
+    attendance_time = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+    latitude = db.Column(
+        db.Float
+    )
+
+    longitude = db.Column(
+        db.Float
+    )
+
+    photo = db.Column(
+        db.String(255)
+    )
+
+    status = db.Column(
+        db.String(20),
+        default="Present"
+    )
+    location_id = db.Column(
+        db.Integer,
+        db.ForeignKey("unit_locations.id"),
+        nullable=True
+    )
+
+    remarks = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    distance = db.Column(
+        db.Float,
+        nullable=True
+    )
+
+    users = db.relationship(
+        "User",
+        backref="dynamic_attendance"
+    )
+
+    unit = db.relationship(
+        "Unit",
+        backref="dynamic_attendance"
+    )
+    location = db.relationship(
+        "UnitLocation",
+        backref="dynamic_attendance"
+    )
+
+class AttendanceScheduleConfig(db.Model):
+
+    __tablename__ = "attendance_schedule_config"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    unit_id = db.Column(
+        db.Integer,
+        db.ForeignKey(
+            "units.id"
+        ),
+        nullable=False
+    )
+
+    total_checkpoints = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    start_time = db.Column(
+        db.Time,
+        nullable=False
+    )
+
+    checkpoint_duration = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    interval_minutes = db.Column(
+        db.Integer,
+        nullable=False
+    )
+
+    is_active = db.Column(
+        db.Boolean,
+        default=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+    unit = db.relationship(
+        "Unit",
+        backref="attendance_schedule_configs"
+    )

@@ -42,11 +42,17 @@ def log_audit(
                 request.remote_addr
             ),
 
-            browser=request.user_agent.browser,
+            browser=str(
+                request.user_agent.browser
+                or "Unknown"
+            ),
 
-            device=request.user_agent.platform,
+            device=str(
+                request.user_agent.platform
+                or "Unknown"
+            ),
 
-            operating_system=request.user_agent.os
+            operating_system="Unknown"
         )
 
         db.session.add(

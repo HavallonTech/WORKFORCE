@@ -1,6 +1,5 @@
-Phase 1 Goal
-
-
+Phase 1 Goal, Unir has been renamed Project
+Units remaned to Project
 MySQL database auto-created if it doesn't exist
 Tables auto-created
 Super Admin auto-created if none exists

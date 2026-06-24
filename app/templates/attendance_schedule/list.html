@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}
+Attendance Schedules
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-success text-white">
+
+            <h5>Generated Attendance Schedules</h5>
+
+    </div>
+
+    <div class="card-body">
+        <div class="card shadow-sm mb-3">
+
+    <div class="card-header bg-primary text-white">
+
+        Filter Schedule
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="GET">
+
+            <div class="row">
+
+                <div class="col-md-4">
+
+                    <label class="form-label">
+
+                        Projects
+
+                    </label>
+
+                    <select
+                        name="unit_id"
+                        class="form-select">
+
+                        <option value="">
+
+                            All Projects
+
+                        </option>
+
+                        {% for unit in units %}
+
+                        <option
+                            value="{{ unit.id }}"
+                            {% if unit_id and unit_id|int == unit.id %}
+                            selected
+                            {% endif %}>
+
+                            {{ unit.name }}
+
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary">
+
+                        Filter
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+    <div class="alert alert-info">
+
+    Showing
+
+    <strong>
+
+        {{ schedules|length }}
+
+    </strong>
+
+    checkpoint(s)
+
+</div>
+
+</div>
+
+
+        <table class="table table-bordered table-striped">
+
+            <thead>
+
+                <tr>
+
+                    <th>Project</th>
+                    <th>Checkpoint</th>
+                    <th>Open Time</th>
+                    <th>Close Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                {% for row in schedules %}
+
+                <tr>
+
+                    <td>{{ row.unit.name }}</td>
+
+                    <td>
+                        {{ row.checkpoint_number }}
+                    </td>
+
+                    <td>
+                        {{ row.open_time.strftime('%I:%M %p') }}
+                    </td>
+
+                    <td>
+                        {{ row.close_time.strftime('%I:%M %p') }}
+                    </td>
+
+                    <td>
+
+    {% if row.is_active %}
+
+        <span class="badge bg-success">
+
+            Active
+
+        </span>
+
+    {% else %}
+
+        <span class="badge bg-danger">
+
+            Inactive
+
+        </span>
+
+    {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        <a href="{{ url_for(
+                                'main.edit_attendance_schedule',
+                                id=row.id
+                            ) }}"
+                        class="btn btn-sm btn-primary">
+
+                            Edit
+
+                        </a>
+
+                        <a href="{{ url_for(
+                                'main.toggle_attendance_schedule',
+                                id=row.id
+                            ) }}"
+                        class="btn btn-sm btn-warning">
+
+                            {% if row.is_active %}
+
+                                Deactivate
+
+                            {% else %}
+
+                                Activate
+
+                            {% endif %}
+
+                        </a>
+
+                        <a href="{{ url_for(
+                                'main.delete_attendance_schedule',
+                                id=row.id
+                            ) }}"
+                        class="btn btn-sm btn-danger"
+                        onclick="return confirm(
+                            'Delete this checkpoint?'
+                        )">
+
+                            Delete
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+{% endblock %}

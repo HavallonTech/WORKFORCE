@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block title %}
+WorkForce - Field Attendance V2
+{% endblock %}
+
+{% block content %}
+
+<style>
+.card-body {
+
+    padding: 1rem;
+
+}
+
+#video {
+
+    width: 100%;
+
+    max-width: 320px;
+
+    height: auto;
+
+    border-radius: 12px;
+
+    border: 2px solid #dee2e6;
+
+}
+
+#preview {
+
+    width: 100%;
+
+    max-width: 320px;
+
+    height: auto;
+
+    border-radius: 12px;
+
+    border: 2px solid #198754;
+
+}
+
+.checkpoint-card {
+
+    padding: 10px;
+
+    border-radius: 12px;
+
+    background: #e8f4ff;
+
+    border: 1px solid #b6dcff;
+
+}
+
+.compact-alert {
+
+    padding: 8px 12px;
+
+    margin-bottom: 10px;
+
+    font-size: 0.95rem;
+
+}
+
+.camera-section {
+
+    text-align: center;
+
+}
+
+.camera-container {
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: flex-start;
+
+    gap: 15px;
+
+    flex-wrap: wrap;
+
+}
+
+.capture-btn {
+
+    margin-top: 10px;
+
+}
+
+.page-title {
+
+    font-size: 1.7rem;
+
+    font-weight: 600;
+
+}
+
+.current-time {
+
+    font-size: 1.2rem;
+
+    font-weight: bold;
+
+    color: #0d6efd;
+
+}
+
+.checkpoint-number {
+
+    font-size: 2rem;
+
+    font-weight: bold;
+
+    color: #0d6efd;
+
+}
+
+.submit-btn {
+
+    position: sticky;
+
+    bottom: 10px;
+
+    z-index: 100;
+
+}
+
+textarea {
+
+    resize: none;
+
+}
+
+@media (min-width: 992px) {
+
+    .attendance-layout {
+
+        display: flex;
+
+        gap: 20px;
+
+        align-items: flex-start;
+
+    }
+
+    .attendance-info {
+
+        flex: 1;
+
+    }
+
+    .attendance-camera {
+
+        flex: 1;
+
+    }
+
+}
+
+</style>
+
+<div class="row justify-content-center">
+
+    <div class="col-md-8">
+
+        <div class="card shadow-sm">
+
+            <div class="card-header bg-primary text-white text-center">
+
+                <h4 class="mb-0 text-center">
+
+                    WorkForce Field Attendance V2
+
+                </h4>
+
+            </div>
+
+           <div class="card-body">
+
+            <div class="attendance-layout">
+
+                <!-- LEFT PANEL -->
+
+                <div class="attendance-info">
+
+                    <div class="alert alert-info checkpoint-card text-center">
+
+                        <h3 class="checkpoint-number">
+
+                            Checkpoint {{ schedule.checkpoint_number }}
+
+                        </h3>
+
+                        <p class="mb-1">
+
+                            Opens:
+                            <strong>
+
+                                {{ schedule.open_time.strftime('%I:%M %p') }}
+
+                            </strong>
+
+                        </p>
+
+                        <p class="mb-1">
+
+                            Closes:
+                            <strong>
+
+                                {{ schedule.close_time.strftime('%I:%M %p') }}
+
+                            </strong>
+
+                        </p>
+
+                        <p class="mb-0">
+
+                            Project:
+                            <strong>
+
+                                {{ current_user.unit.name }}
+
+                            </strong>
+
+                        </p>
+
+                    </div>
+
+                    <div class="alert alert-secondary compact-alert text-center">
+
+                        Current Time:
+
+                        <strong>
+
+                            {{ current_time }}
+
+                        </strong>
+
+                    </div>
+
+                    {% if todays_break %}
+
+                    <div class="alert alert-warning compact-alert">
+
+                        ⚠ Break already used today
+
+                        <br>
+
+                        Break Checkpoint:
+
+                        <strong>
+
+                            {{ todays_break.checkpoint_number }}
+
+                        </strong>
+
+                    </div>
+
+                    {% else %}
+
+                    <div class="alert alert-success compact-alert">
+
+                        ✓ No break used today
+
+                    </div>
+
+                    {% endif %}
+
+                    <div
+                        id="gps-alert"
+                        class="alert alert-warning compact-alert">
+
+                        Detecting GPS location...
+
+                    </div>
+
+                    <form
+                        method="POST"
+                        id="attendanceForm">
+
+                        <div class="mb-3">
+
+                            <label class="form-label">
+
+                                Remarks
+
+                            </label>
+
+                            <textarea
+                                name="remarks"
+                                class="form-control"
+                                rows="3"
+                                placeholder="Optional remarks">
+                            </textarea>
+
+                        </div>
+
+                        <input
+                            type="hidden"
+                            name="photo"
+                            id="photo">
+
+                        <input
+                            type="hidden"
+                            name="latitude"
+                            id="latitude">
+
+                        <input
+                            type="hidden"
+                            name="longitude"
+                            id="longitude">
+
+                        <button
+                            type="submit"
+                            class="btn btn-success btn-lg w-100">
+
+                            Check In
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+                <!-- RIGHT PANEL -->
+
+                <div class="attendance-camera">
+
+                    <div class="camera-section">
+
+                        <video
+                            id="video"
+                            autoplay
+                            class="border rounded">
+                        </video>
+
+                        <button
+                            type="button"
+                            id="capture"
+                            class="btn btn-primary w-100 mt-3">
+
+                            Capture Selfie
+
+                        </button>
+
+                        <canvas
+                            id="canvas"
+                            style="display:none;">
+                        </canvas>
+
+                        <img
+                            id="preview"
+                            class="img-thumbnail mt-3"
+                            style="display:none;">
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const video =
+    document.getElementById(
+        "video"
+    );
+
+const canvas =
+    document.getElementById(
+        "canvas"
+    );
+
+const preview =
+    document.getElementById(
+        "preview"
+    );
+
+const photoInput =
+    document.getElementById(
+        "photo"
+    );
+
+navigator.mediaDevices
+.getUserMedia({
+    video: true
+})
+.then(function(stream){
+
+    video.srcObject = stream;
+
+})
+.catch(function(){
+
+    Swal.fire({
+
+        title: "WorkForce",
+
+        text: "Unable to access camera",
+
+        icon: "error"
+
+    });
+
+});
+
+document
+.getElementById(
+    "capture"
+)
+.addEventListener(
+    "click",
+    function(){
+
+        canvas.width =
+            video.videoWidth;
+
+        canvas.height =
+            video.videoHeight;
+
+        canvas
+        .getContext("2d")
+        .drawImage(
+            video,
+            0,
+            0
+        );
+
+        const imageData =
+            canvas.toDataURL(
+                "image/jpeg"
+            );
+
+        photoInput.value =
+            imageData;
+
+        preview.src =
+            imageData;
+
+        preview.style.display =
+            "block";
+
+        Swal.fire({
+
+            title: "WorkForce",
+
+            text: "Selfie captured successfully",
+
+            icon: "success",
+
+            timer: 1500,
+
+            showConfirmButton: false
+
+        });
+
+    }
+);
+
+document
+.getElementById(
+    "attendanceForm"
+)
+.addEventListener(
+    "submit",
+    function(e){
+
+        if(
+            photoInput.value === ""
+        ){
+
+            e.preventDefault();
+
+            Swal.fire({
+
+                title: "WorkForce",
+
+                text: "Please capture a selfie before check in",
+
+                icon: "warning"
+
+            });
+
+        }
+
+    }
+);
+
+navigator.geolocation.getCurrentPosition(
+
+    function(position){
+
+        document.getElementById(
+            "latitude"
+        ).value =
+            position.coords.latitude;
+
+        document.getElementById(
+            "longitude"
+        ).value =
+            position.coords.longitude;
+
+        document.getElementById(
+            "gps-alert"
+        ).className =
+            "alert alert-success text-center";
+
+        document.getElementById(
+            "gps-alert"
+        ).innerHTML =
+            "🟢 GPS location detected";
+
+    },
+
+    function(){
+
+        document.getElementById(
+            "gps-alert"
+        ).className =
+            "alert alert-danger text-center";
+
+        document.getElementById(
+            "gps-alert"
+        ).innerHTML =
+            "🔴 Unable to detect GPS location";
+
+    }
+
+);
+
+</script>
+
+{% endblock %}

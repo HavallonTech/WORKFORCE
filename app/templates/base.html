@@ -145,7 +145,74 @@ document.addEventListener(
 );
 
 </script>
+<script>
 
+document.addEventListener(
+    "DOMContentLoaded",
+    function(){
+
+        var tooltipTriggerList =
+            [].slice.call(
+                document.querySelectorAll(
+                    '[data-bs-toggle="tooltip"]'
+                )
+            );
+
+        tooltipTriggerList.map(
+            function (tooltipTriggerEl) {
+
+                return new bootstrap.Tooltip(
+                    tooltipTriggerEl
+                );
+
+            }
+        );
+
+    }
+);
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+function confirmBreak(event){
+
+    event.preventDefault();
+
+    const url =
+        event.currentTarget.href;
+
+    Swal.fire({
+
+        title: 'WorkForce',
+
+        text: 'Use this checkpoint as your break period?',
+
+        icon: 'question',
+
+        showCancelButton: true,
+
+        confirmButtonColor: '#198754',
+
+        cancelButtonColor: '#dc3545',
+
+        confirmButtonText: 'Yes, Use As Break',
+
+        cancelButtonText: 'Cancel'
+
+    }).then((result) => {
+
+        if(result.isConfirmed){
+
+            window.location.href = url;
+
+        }
+
+    });
+
+}
+
+</script>
 </body>
 
 </html>

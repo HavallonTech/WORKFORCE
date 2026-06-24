@@ -1,13 +1,20 @@
-
-
 from flask import Blueprint, app, current_app, flash, render_template, request, redirect, url_for
 from flask_login import current_user, login_user, login_required, logout_user
-from app.models import Attendance, AuditLog, Department, User, Unit, FieldAttendance, UnitLocation
+from app.models import (
+    Attendance,
+    AttendanceSchedule,
+    AttendanceScheduleConfig,
+    AuditLog, Department, User, Unit, FieldAttendance, UnitLocation, AttendanceScheduleConfig,
+    DynamicAttendance, AttendanceBreak)
 from app import db
 from app.helpers import toast
 from app.utils.audit import log_audit
 import re
-from datetime import datetime, date
+from datetime import (
+    datetime,
+    timedelta,
+    date
+)
 from app.utils.timezone import nigeria_now
 import os
 import base64
@@ -39,6 +46,9 @@ from app.utils.field_attendance import (
 )
 from app.models import (
     FieldAttendance
+)
+from app.utils.attendance import (
+    get_current_checkpoint
 )
 
 main = Blueprint("main", __name__)
@@ -1962,8 +1972,6 @@ def export_audit_pdf():
         "application/pdf"
     )
 
-from datetime import datetime
-
 @main.route(
     "/audit-logs/print"
 )
@@ -3616,5 +3624,1461 @@ def reset_user_password(id):
         "users/reset_password.html",
 
         user=user
+
+    )
+
+@main.route(
+    "/attendance-schedule-config",
+    methods=["GET", "POST"]
+)
+@login_required
+@admin_required
+def attendance_schedule_config():
+
+    config = AttendanceScheduleConfig.query.first()
+
+    units = Unit.query.filter_by(
+        status=True
+    ).all()
+
+    if request.method == "POST":
+
+        unit_id = request.form.get(
+            "unit_id"
+        )
+
+        total_checkpoints = int(
+            request.form.get(
+                "total_checkpoints"
+            )
+        )
+
+        start_time = datetime.strptime(
+
+            request.form.get(
+                "start_time"
+            ),
+
+            "%H:%M"
+
+        ).time()
+
+        checkpoint_duration = int(
+
+            request.form.get(
+                "checkpoint_duration"
+            )
+        )
+
+        interval_minutes = int(
+
+            request.form.get(
+                "interval_minutes"
+            )
+        )
+
+        if config:
+
+            config.unit_id = unit_id
+
+            config.total_checkpoints = (
+                total_checkpoints
+            )
+
+            config.start_time = (
+                start_time
+            )
+
+            config.checkpoint_duration = (
+                checkpoint_duration
+            )
+
+            config.interval_minutes = (
+                interval_minutes
+            )
+
+        else:
+
+            config = AttendanceScheduleConfig(
+
+                unit_id=unit_id,
+
+                total_checkpoints=(
+                    total_checkpoints
+                ),
+
+                start_time=start_time,
+
+                checkpoint_duration=(
+                    checkpoint_duration
+                ),
+
+                interval_minutes=(
+                    interval_minutes
+                )
+            )
+
+            db.session.add(
+                config
+            )
+
+        db.session.commit()
+
+        toast(
+            "Configuration saved",
+            "success"
+        )
+
+        return redirect(
+            url_for(
+                "main.attendance_schedule_config"
+            )
+        )
+
+    return render_template(
+
+        "attendance_schedule/config.html",
+
+        config=config,
+
+        units=units
+    )
+
+@main.route(
+    "/generate-attendance-schedule"
+)
+@login_required
+@admin_required
+def generate_attendance_schedule():
+
+    config = AttendanceScheduleConfig.query.first()
+
+    if not config:
+
+        toast(
+            "Please create a schedule configuration first",
+            "warning"
+        )
+
+        return redirect(
+            url_for(
+                "main.attendance_schedule_config"
+            )
+        )
+    start_datetime = datetime.combine(
+        date.today(),
+        config.start_time
+    )
+
+    AttendanceSchedule.query.filter_by(
+        unit_id=config.unit_id
+    ).delete()
+
+    for checkpoint in range(
+        1,
+        config.total_checkpoints + 1
+    ):
+
+        open_time = start_datetime.time()
+
+        close_time = (
+            start_datetime +
+            timedelta(
+                minutes=config.checkpoint_duration
+            )
+        ).time()
+
+        schedule = AttendanceSchedule(
+
+            unit_id=config.unit_id,
+
+            checkpoint_number=checkpoint,
+
+            open_time=open_time,
+
+            close_time=close_time,
+
+            is_active=True
+        )
+
+        db.session.add(
+            schedule
+        )
+
+        start_datetime = (
+            start_datetime +
+            timedelta(
+                minutes=config.interval_minutes
+            )
+        )
+
+    db.session.commit()
+
+    toast(
+        "Attendance schedule generated successfully",
+        "success"
+    )
+
+    return redirect(
+        url_for(
+            "main.attendance_schedule_list"
+        )
+    )
+
+@main.route("/attendance-schedules")
+@login_required
+@admin_required
+def attendance_schedule_list():
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    units = Unit.query.filter_by(
+        status=True
+    ).order_by(
+        Unit.name
+    ).all()
+
+    query = AttendanceSchedule.query
+
+    if unit_id:
+
+        query = query.filter(
+            AttendanceSchedule.unit_id == unit_id
+        )
+
+    schedules = query.order_by(
+        AttendanceSchedule.unit_id,
+        AttendanceSchedule.checkpoint_number
+    ).all()
+
+    return render_template(
+
+        "attendance_schedule/list.html",
+
+        schedules=schedules,
+
+        units=units,
+
+        unit_id=unit_id
+    )
+
+@main.route(
+    "/attendance-schedule/<int:id>/toggle"
+)
+@login_required
+@admin_required
+def toggle_attendance_schedule(id):
+
+    schedule = AttendanceSchedule.query.get_or_404(
+        id
+    )
+
+    schedule.is_active = (
+        not schedule.is_active
+    )
+
+    db.session.commit()
+
+    toast(
+        "Schedule updated successfully",
+        "success"
+    )
+
+    return redirect(
+        url_for(
+            "main.attendance_schedule_list"
+        )
+    )
+
+@main.route(
+    "/attendance-schedule/<int:id>/delete"
+)
+@login_required
+@admin_required
+def delete_attendance_schedule(id):
+
+    schedule = AttendanceSchedule.query.get_or_404(
+        id
+    )
+
+    db.session.delete(
+        schedule
+    )
+
+    db.session.commit()
+
+    toast(
+        "Checkpoint deleted successfully",
+        "success"
+    )
+
+    return redirect(
+        url_for(
+            "main.attendance_schedule_list"
+        )
+    )
+
+@main.route(
+    "/attendance-schedule/<int:id>/edit",
+    methods=["GET", "POST"]
+)
+@login_required
+@admin_required
+def edit_attendance_schedule(id):
+
+    schedule = AttendanceSchedule.query.get_or_404(
+        id
+    )
+
+    if request.method == "POST":
+
+        schedule.open_time = datetime.strptime(
+
+            request.form.get(
+                "open_time"
+            ),
+
+            "%H:%M"
+
+        ).time()
+
+        schedule.close_time = datetime.strptime(
+
+            request.form.get(
+                "close_time"
+            ),
+
+            "%H:%M"
+
+        ).time()
+
+        db.session.commit()
+
+        toast(
+            "Checkpoint updated successfully",
+            "success"
+        )
+
+        return redirect(
+            url_for(
+                "main.attendance_schedule_list"
+            )
+        )
+
+    return render_template(
+
+        "attendance_schedule/edit.html",
+
+        schedule=schedule
+    )
+
+###################################################################################
+###################333Building Field Attendance V2#################################
+###################################################################################
+@main.route(
+    "/field-attendance-v2/checkpoint",
+    methods=["GET"]
+)
+@login_required
+def dynamic_field_checkpoint():
+
+    schedule = get_current_checkpoint(
+        current_user.unit_id
+    )
+    if not schedule:
+        toast(
+            "No active checkpoint currently",
+            "warning"
+        )
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+    existing = DynamicAttendance.query.filter_by(
+        user_id=current_user.id,
+        attendance_date=nigeria_now().date(),
+        checkpoint_number=schedule.checkpoint_number
+    ).first()
+    if existing:
+        toast(
+            f"Checkpoint {schedule.checkpoint_number} already completed",
+            "warning"
+        )
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+    today = nigeria_now().date()
+    todays_break = AttendanceBreak.query.filter_by(
+        user_id=current_user.id,
+        attendance_date=today
+    ).first()
+    today = nigeria_now().date()
+
+    completed_checkpoints = DynamicAttendance.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today
+
+    ).count()
+
+    todays_break = AttendanceBreak.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today
+
+    ).first()
+
+    total_checkpoints = AttendanceSchedule.query.filter_by(
+
+        unit_id=current_user.unit_id,
+
+        is_active=True
+
+    ).count()
+
+    required_checkpoints = total_checkpoints
+
+    if todays_break:
+
+        required_checkpoints -= 1
+
+    compliance = round(
+
+        (
+            completed_checkpoints /
+            max(1, required_checkpoints)
+        ) * 100,
+
+        1
+
+    )
+    timeline = []
+
+    schedules = AttendanceSchedule.query.filter_by(
+
+        unit_id=current_user.unit_id,
+
+        is_active=True
+
+    ).order_by(
+
+        AttendanceSchedule.checkpoint_number
+
+    ).all()
+
+    for item in schedules:
+
+        attendance = DynamicAttendance.query.filter_by(
+
+            user_id=current_user.id,
+
+            attendance_date=today,
+
+            checkpoint_number=item.checkpoint_number
+
+        ).first()
+
+        is_break = False
+
+        if todays_break:
+
+            is_break = (
+
+                todays_break.checkpoint_number
+
+                ==
+
+                item.checkpoint_number
+
+            )
+
+        if attendance:
+
+            status = "completed"
+
+        elif is_break:
+
+            status = "break"
+
+        else:
+
+            status = "pending"
+
+        timeline.append({
+
+            "checkpoint": item.checkpoint_number,
+
+            "status": status,
+
+            "open_time": item.open_time,
+
+            "close_time": item.close_time
+
+        })
+
+    remaining_checkpoints = max(
+
+        0,
+
+        required_checkpoints - completed_checkpoints
+
+    )
+    return render_template(
+
+        "field_attendance_v2/checkpoint.html",
+        schedule=schedule,
+        current_time=nigeria_now().strftime("%I:%M %p"),
+        completed_checkpoints=completed_checkpoints,
+        required_checkpoints=required_checkpoints,
+        remaining_checkpoints=remaining_checkpoints,
+        compliance=compliance,
+        timeline=timeline,
+        todays_break=todays_break
+    )
+#######################################################Break #############################################
+@main.route(
+    "/field-attendance-v2/break/<int:checkpoint_number>"
+)
+@login_required
+def use_break(checkpoint_number):
+
+    today = nigeria_now().date()
+
+    # Check if user has already used a break today
+
+    existing_break = AttendanceBreak.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today
+
+    ).first()
+    all_breaks = AttendanceBreak.query.filter_by(
+        user_id=current_user.id,
+        attendance_date=today
+    ).all()
+    if existing_break:
+
+        toast(
+
+            f"You already used Checkpoint "
+            f"{existing_break.checkpoint_number} "
+            f"as your break today",
+
+            "warning"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+    # Check if user already checked in for this checkpoint
+
+    attendance = DynamicAttendance.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today,
+
+        checkpoint_number=checkpoint_number
+
+    ).first()
+
+    if attendance:
+
+        toast(
+
+            "You have already checked in for this checkpoint",
+
+            "warning"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.dynamic_field_checkpoint"
+            )
+        )
+
+    # Save break
+
+    attendance_break = AttendanceBreak(
+
+        user_id=current_user.id,
+
+        attendance_date=today,
+
+        checkpoint_number=checkpoint_number
+
+    )
+
+    db.session.add(
+        attendance_break
+    )
+
+    db.session.commit()
+
+    log_audit(
+
+        "Field Attendance V2",
+
+        "Break",
+
+        f"{current_user.username} used "
+        f"Checkpoint {checkpoint_number} "
+        f"as break"
+
+    )
+
+    toast(
+
+        f"Checkpoint {checkpoint_number} "
+        f"successfully marked as your break",
+
+        "success"
+
+    )
+
+    return redirect(
+        url_for(
+            "main.dashboard"
+        )
+    )
+@main.route("/field-attendance-v2/checkin", methods=["GET", "POST"])
+@login_required
+def dynamic_checkin():
+
+    today = nigeria_now().date()
+
+    schedule = get_current_checkpoint(
+        current_user.unit_id
+    )
+
+    if not schedule:
+
+        toast(
+            "No active checkpoint currently",
+            "warning"
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+    todays_break = AttendanceBreak.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today
+
+    ).first()
+
+    if todays_break and (
+        todays_break.checkpoint_number
+        ==
+        schedule.checkpoint_number
+    ):
+
+        toast(
+
+            "This checkpoint has been used as break",
+
+            "warning"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+    existing = DynamicAttendance.query.filter_by(
+
+        user_id=current_user.id,
+
+        attendance_date=today,
+
+        checkpoint_number=schedule.checkpoint_number
+
+    ).first()
+
+    if existing:
+
+        toast(
+
+            f"Checkpoint "
+            f"{schedule.checkpoint_number} "
+            f"already completed",
+
+            "warning"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+    if request.method == "POST":
+
+        photo_data = request.form.get(
+            "photo"
+        )
+
+        latitude = request.form.get(
+            "latitude"
+        )
+
+        longitude = request.form.get(
+            "longitude"
+        )
+
+        remarks = request.form.get(
+            "remarks"
+        )
+
+        if not latitude or not longitude:
+
+            toast(
+                "Location is required",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.dynamic_checkin"
+                )
+            )
+
+        if not photo_data:
+
+            toast(
+                "Selfie is required",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.dynamic_checkin"
+                )
+            )
+
+        active_locations = UnitLocation.query.filter_by(
+
+            unit_id=current_user.unit_id,
+
+            status=True
+
+        ).all()
+
+        if not active_locations:
+
+            toast(
+
+                "No attendance location configured",
+
+                "danger"
+
+            )
+
+            return redirect(
+                url_for(
+                    "main.dashboard"
+                )
+            )
+
+        allowed = False
+
+        matched_location = None
+
+        matched_distance = None
+
+        for location in active_locations:
+
+            distance = distance_in_meters(
+
+                float(latitude),
+
+                float(longitude),
+
+                location.latitude,
+
+                location.longitude
+
+            )
+
+            if distance <= location.radius:
+
+                allowed = True
+
+                matched_location = location
+
+                matched_distance = distance
+
+                break
+
+        if not allowed:
+
+            log_audit(
+
+                "Field Attendance V2",
+
+                "Failed Check-In",
+
+                f"{current_user.username} attempted "
+                f"Checkpoint "
+                f"{schedule.checkpoint_number} "
+                f"outside approved location"
+
+            )
+
+            toast(
+                    f"You are outside the approved attendance location"
+                    f"{round(distance,2)}m "
+                    f"away from "
+                    f'{"SUBMITTED LATITUDE:", latitude}'
+                    f'{"SUBMITTED LONGITUDE:", longitude}'
+                    f"{location.name}. "
+                    f"Allowed radius is "
+                    f"{location.radius}m",
+                    "danger"
+
+                )
+            return redirect(
+                url_for(
+                    "main.dynamic_checkin"
+                )
+            )
+
+        upload_folder = os.path.join(
+
+            "app",
+
+            "static",
+
+            "uploads",
+
+            "dynamic_attendance"
+
+        )
+
+        os.makedirs(
+
+            upload_folder,
+
+            exist_ok=True
+
+        )
+
+        filename = (
+
+            f"dyn_"
+
+            f"{current_user.id}_"
+
+            f"{today}_"
+
+            f"{schedule.checkpoint_number}.jpg"
+
+        )
+
+        filepath = os.path.join(
+
+            upload_folder,
+
+            filename
+
+        )
+
+        header, encoded = photo_data.split(
+            ",",
+            1
+        )
+
+        with open(
+            filepath,
+            "wb"
+        ) as f:
+
+            f.write(
+                base64.b64decode(
+                    encoded
+                )
+            )
+
+        attendance = DynamicAttendance(
+
+            user_id=current_user.id,
+
+            unit_id=current_user.unit_id,
+
+            location_id=matched_location.id,
+
+            checkpoint_number=schedule.checkpoint_number,
+
+            attendance_date=today,
+
+            attendance_time=nigeria_now(),
+
+            latitude=float(latitude),
+
+            longitude=float(longitude),
+
+            photo=filename,
+
+            distance=matched_distance,
+
+            remarks=remarks,
+
+            status="Present"
+
+        )
+
+        db.session.add(
+            attendance
+        )
+
+        db.session.commit()
+
+        log_audit(
+
+            "Field Attendance V2",
+
+            "Check-In",
+
+            f"{current_user.username} completed "
+            f"Checkpoint "
+            f"{schedule.checkpoint_number} "
+            f" at "
+            f"{matched_location.name} "
+            f"({round(matched_distance, 2)}m)"
+
+        )
+
+        toast(
+
+            f"Checkpoint "
+            f"{schedule.checkpoint_number} "
+            f"recorded successfully",
+
+            "success"
+
+        )
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+    return render_template(
+
+        "field_attendance_v2/checkin.html",
+
+        schedule=schedule,
+
+        current_time=nigeria_now().strftime(
+            "%I:%M %p"
+        ),
+
+        todays_break=todays_break
+    )
+@main.route(
+    "/field-attendance-v2/history"
+)
+@login_required
+def attendance_history_v2():
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+    records_query = DynamicAttendance.query.filter_by(
+
+        user_id=current_user.id
+
+    )
+
+    breaks_query = AttendanceBreak.query.filter_by(
+
+        user_id=current_user.id
+
+    )
+
+    if start_date:
+
+        start_dt = datetime.strptime(
+            start_date,
+            "%Y-%m-%d"
+        ).date()
+
+        records_query = records_query.filter(
+            DynamicAttendance.attendance_date >= start_dt
+        )
+
+        breaks_query = breaks_query.filter(
+            AttendanceBreak.attendance_date >= start_dt
+        )
+
+    if end_date:
+
+        end_dt = datetime.strptime(
+            end_date,
+            "%Y-%m-%d"
+        ).date()
+
+        records_query = records_query.filter(
+            DynamicAttendance.attendance_date <= end_dt
+        )
+
+        breaks_query = breaks_query.filter(
+            AttendanceBreak.attendance_date <= end_dt
+        )
+
+    records = records_query.order_by(
+
+        DynamicAttendance.attendance_date.desc(),
+
+        DynamicAttendance.attendance_time.desc()
+
+    ).all()
+
+    breaks = breaks_query.order_by(
+
+        AttendanceBreak.attendance_date.desc()
+
+    ).all()
+
+    total_attendance = len(
+        records
+    )
+
+    total_breaks = len(
+        breaks
+    )
+
+    log_audit(
+
+        "Field Attendance V2",
+
+        "History",
+
+        f"{current_user.username} viewed attendance history"
+
+    )
+
+    return render_template(
+
+        "field_attendance_v2/history.html",
+
+        records=records,
+
+        breaks=breaks,
+
+        total_attendance=total_attendance,
+
+        total_breaks=total_breaks,
+
+        start_date=start_date,
+
+        end_date=end_date
+
+    )
+@main.route(
+    "/field-attendance-v2/compliance"
+)
+@login_required
+def attendance_compliance_v2():
+
+    selected_date = request.args.get(
+        "report_date"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    if selected_date:
+
+        report_date = datetime.strptime(
+
+            selected_date,
+
+            "%Y-%m-%d"
+
+        ).date()
+
+    else:
+
+        report_date = nigeria_now().date()
+
+    # ==================================
+    # STAFF FILTER
+    # ==================================
+
+    staff_query = User.query.filter_by(
+
+        is_active_user=True
+
+    )
+
+    if unit_id:
+
+        staff_query = staff_query.filter(
+
+            User.unit_id == unit_id
+
+        )
+
+    if user_id:
+
+        staff_query = staff_query.filter(
+
+            User.id == user_id
+
+        )
+
+    staff = staff_query.order_by(
+
+        User.full_name
+
+    ).all()
+
+    # ==================================
+    # BUILD REPORT
+    # ==================================
+
+    compliance_data = []
+
+    for user in staff:
+
+        punches = DynamicAttendance.query.filter_by(
+
+            user_id=user.id,
+
+            attendance_date=report_date
+
+        ).all()
+
+        breaks = AttendanceBreak.query.filter_by(
+
+            user_id=user.id,
+
+            attendance_date=report_date
+
+        ).all()
+
+        completed = len(punches)
+
+        config = AttendanceScheduleConfig.query.filter_by(
+
+            unit_id=user.unit_id).first()
+
+        if config:
+
+            expected = config.total_checkpoints
+
+        else:
+
+            expected = 0
+
+        if breaks:
+
+            expected = max(
+
+                0,
+
+                expected - 1
+
+            )
+
+        compliance = round(
+
+            (
+                completed /
+                max(1, expected)
+            ) * 100,
+
+            1
+
+        )
+        if compliance >= 90:
+
+            status = "Excellent"
+
+        elif compliance >= 75:
+
+            status = "Good"
+
+        elif compliance >= 50:
+
+            status = "Fair"
+
+        else:
+
+            status = "Poor"
+
+        compliance_data.append({
+
+            "staff_name": user.full_name,
+
+            "project": (
+                user.unit.name
+                if user.unit
+                else ""
+            ),
+
+            "completed": completed,
+
+            "expected": expected,
+
+            "break_used": (
+                "Yes"
+                if breaks
+                else "No"
+            ),
+
+            "compliance": compliance,
+
+            "status": status
+
+        })
+
+    # ==================================
+    # DROPDOWNS
+    # ==================================
+
+    units = Unit.query.filter_by(
+
+        status=True
+
+    ).order_by(
+
+        Unit.name
+
+    ).all()
+
+    users = User.query.filter_by(
+
+        is_active_user=True
+
+    ).order_by(
+
+        User.full_name
+
+    ).all()
+
+    log_audit(
+
+        "Field Attendance V2",
+
+        "Compliance Report",
+
+        f"{current_user.username} viewed compliance report"
+
+    )
+
+    return render_template(
+
+        "field_attendance_v2/compliance.html",
+
+        compliance_data=compliance_data,
+
+        report_date=report_date,
+
+        users=users,
+
+        units=units,
+
+        user_id=user_id,
+
+        unit_id=unit_id
+
+    )
+@main.route(
+    "/field-attendance-v2/dashboard"
+)
+@login_required
+@admin_required
+def attendance_dashboard_v2():
+
+    today = nigeria_now().date()
+
+    total_staff = User.query.filter_by(
+        is_active_user=True
+    ).count()
+
+    checked_in = db.session.query(
+        DynamicAttendance.user_id
+    ).filter(
+        DynamicAttendance.attendance_date == today
+    ).distinct().count()
+
+    breaks_used = AttendanceBreak.query.filter_by(
+        attendance_date=today
+    ).count()
+
+    pending = max(
+        0,
+        total_staff - checked_in
+    )
+
+    units = Unit.query.filter_by(
+        status=True
+    ).all()
+
+    project_summary = []
+
+    excellent_count = 0
+    good_count = 0
+    fair_count = 0
+    poor_count = 0
+
+    for unit in units:
+
+        staff_members = User.query.filter_by(
+
+            unit_id=unit.id,
+
+            is_active_user=True
+
+        ).all()
+
+        total_compliance = 0
+
+        staff_count = len(
+            staff_members
+        )
+
+        for staff in staff_members:
+
+            punches = DynamicAttendance.query.filter_by(
+
+                user_id=staff.id,
+
+                attendance_date=today
+
+            ).count()
+
+            breaks = AttendanceBreak.query.filter_by(
+
+                user_id=staff.id,
+
+                attendance_date=today
+
+            ).count()
+
+            config = AttendanceScheduleConfig.query.filter_by(
+
+                unit_id=staff.unit_id
+
+            ).first()
+
+            if config:
+
+                expected = config.total_checkpoints
+
+            else:
+
+                expected = 0
+
+            if breaks:
+
+                expected = max(
+                    0,
+                    expected - 1
+                )
+
+            compliance = round(
+
+                (
+                    punches /
+                    max(1, expected)
+                ) * 100,
+
+                1
+
+            )
+
+            total_compliance += compliance
+
+            if compliance >= 90:
+
+                excellent_count += 1
+
+            elif compliance >= 75:
+
+                good_count += 1
+
+            elif compliance >= 50:
+
+                fair_count += 1
+
+            else:
+
+                poor_count += 1
+
+        avg_compliance = round(
+
+            total_compliance /
+            max(1, staff_count),
+
+            1
+
+        )
+
+        project_summary.append({
+
+            "project": unit.name,
+
+            "staff_count": staff_count,
+
+            "avg_compliance": avg_compliance
+
+        })
+
+    log_audit(
+
+        "Field Attendance V2",
+
+        "Dashboard",
+
+        f"{current_user.username} viewed dashboard"
+
+    )
+
+    return render_template(
+
+        "field_attendance_v2/dashboard.html",
+
+        total_staff=total_staff,
+        checked_in=checked_in,
+        breaks_used=breaks_used,
+        pending=pending,
+        project_summary=project_summary,
+        excellent_count=excellent_count,
+        good_count=good_count,
+        fair_count=fair_count,
+        poor_count=poor_count
 
     )

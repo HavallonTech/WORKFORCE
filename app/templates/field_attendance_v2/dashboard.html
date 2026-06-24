@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}
+Project Attendance Dashboard
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm mb-4">
+
+    <div class="card-header bg-primary text-white">
+
+        Project Attendance Dashboard
+
+    </div>
+    <div class="row">
+
+        <div class="col-md-3">
+
+            <div class="card border-primary">
+
+                <div class="card-body text-center">
+
+                    <h2>{{ total_staff }}</h2>
+
+                    <small>Total Staff</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card border-success">
+
+                <div class="card-body text-center">
+
+                    <h2>{{ checked_in }}</h2>
+
+                    <small>Checked In</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card border-warning">
+
+                <div class="card-body text-center">
+
+                    <h2>{{ breaks_used }}</h2>
+
+                    <small>Breaks Used</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-3">
+
+            <div class="card border-danger">
+
+                <div class="card-body text-center">
+
+                    <h2>{{ pending }}</h2>
+
+                    <small>Pending</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+    <div>
+        <div class="row">
+
+    <div class="col-md-3">
+
+        <div class="card border-primary shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h2>{{ total_staff }}</h2>
+
+                <small>Total Staff</small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card border-success shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h2>{{ excellent_count }}</h2>
+
+                <small>Excellent</small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card border-info shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h2>{{ good_count }}</h2>
+
+                <small>Good</small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-3">
+
+        <div class="card border-danger shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h2>{{ poor_count }}</h2>
+
+                <small>Poor</small>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+    </div>
+
+    <div class="card-body">
+<div class="card shadow-sm mt-4">
+
+    <div class="card-header bg-primary text-white">
+
+        Project Compliance Summary
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-hover table-striped">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Project</th>
+
+                        <th>Staff Count</th>
+
+                        <th>Average Compliance</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in project_summary %}
+
+                    <tr>
+
+                        <td>
+
+                            {{ row.project }}
+
+                        </td>
+
+                        <td>
+
+                            {{ row.staff_count }}
+
+                        </td>
+
+                        <td>
+
+                            {{ row.avg_compliance }}%
+
+                        </td>
+
+                        <td>
+
+                            {% if row.avg_compliance >= 90 %}
+
+                                <span class="badge bg-success">
+
+                                    Excellent
+
+                                </span>
+
+                            {% elif row.avg_compliance >= 75 %}
+
+                                <span class="badge bg-primary">
+
+                                    Good
+
+                                </span>
+
+                            {% elif row.avg_compliance >= 50 %}
+
+                                <span class="badge bg-warning text-dark">
+
+                                    Fair
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-danger">
+
+                                    Poor
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+    </div>
+
+</div>
+
+{% endblock %}

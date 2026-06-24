@@ -178,3 +178,40 @@ body{
     padding: 20px;
     transition: all .3s ease;
 }
+
+
+.toast-success {
+
+    background:
+        linear-gradient(
+            135deg,
+            #198754,
+            #20c997
+        );
+
+    color:white;
+}
+
+.toast-danger {
+
+    background:
+        linear-gradient(
+            135deg,
+            #dc3545,
+            #ff6b6b
+        );
+
+    color:white;
+}
+
+.toast-warning {
+
+    background:
+        linear-gradient(
+            135deg,
+            #ffc107,
+            #ffca2c
+        );
+
+    color:black;
+}

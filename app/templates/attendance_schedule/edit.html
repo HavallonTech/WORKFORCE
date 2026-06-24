@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}
+Edit Checkpoint
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-primary text-white">
+
+        Edit Checkpoint
+        {{ schedule.checkpoint_number }}
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="POST">
+
+            <div class="mb-3">
+
+                <label>
+
+                    Open Time
+
+                </label>
+
+                <input
+                    type="time"
+                    name="open_time"
+                    class="form-control"
+                    value="{{ schedule.open_time.strftime('%H:%M') }}"
+                    required>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>
+
+                    Close Time
+
+                </label>
+
+                <input
+                    type="time"
+                    name="close_time"
+                    class="form-control"
+                    value="{{ schedule.close_time.strftime('%H:%M') }}"
+                    required>
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-success">
+
+                Save Changes
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

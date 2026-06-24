@@ -60,7 +60,7 @@ Attendance Report
 
                     <label class="form-label">
 
-                        Unit
+                        Project
 
                     </label>
 
@@ -70,7 +70,7 @@ Attendance Report
 
                         <option value="">
 
-                            All Units
+                            All Project
 
                         </option>
 
@@ -211,13 +211,14 @@ Attendance Report
 
                         <th>Staff</th>
 
-                        <th>Unit</th>
+                        <th>Project</th>
 
                         <th>Location</th>
 
                         <th>Check In</th>
 
                         <th>Check Out</th>
+                        <th>Photo</th>
 
                         <th>Status</th>
 
@@ -289,6 +290,55 @@ Attendance Report
                             {% endif %}
 
                         </td>
+                           <td>
+
+                                {% if record.check_in_photo %}
+
+                                    <a
+                                        href="{{ url_for(
+                                            'static',
+                                            filename='uploads/attendance/' ~ record.check_in_photo
+                                        ) }}"
+                                        target="_blank">
+
+                                        <img
+                                            src="{{ url_for(
+                                                'static',
+                                                filename='uploads/attendance/' ~ record.check_in_photo
+                                            ) }}"
+                                            width="50"
+                                            height="50"
+                                            class="rounded shadow-sm me-1">
+
+                                    </a>
+
+                                {% endif %}
+
+                                {% if record.check_out_photo %}
+
+                                    <a
+                                        href="{{ url_for(
+                                            'static',
+                                            filename='uploads/attendance/' ~ record.check_out_photo
+                                        ) }}"
+                                        target="_blank">
+
+                                        <img
+                                            src="{{ url_for(
+                                                'static',
+                                                filename='uploads/attendance/' ~ record.check_out_photo
+                                            ) }}"
+                                            width="50"
+                                            height="50"
+                                            class="rounded shadow-sm">
+
+                                    </a>
+
+                                {% endif %}
+
+                            </td>
+
+                        
 
                         <td>
 

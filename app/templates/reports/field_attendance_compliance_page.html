@@ -245,13 +245,13 @@ Field Attendance Compliance Report
 
                 <div class="col-md-2">
 
-                    <label>Unit</label>
+                    <label>Project</label>
 
                     <select name="unit_id"
                             class="form-select">
 
                         <option value="">
-                            All Units
+                            All Projects
                         </option>
 
                         {% for unit in units %}
@@ -382,12 +382,13 @@ Field Attendance Compliance Report
 
                         <th>Staff</th>
 
-                        <th>Unit</th>
+                        <th>Project</th>
 
                         <th>Total Punches</th>
                         <th>Expected</th>
 
                         <th>Compliance</th>
+                        <th>Details</th>
 
                         <th>Status</th>
 
@@ -409,6 +410,16 @@ Field Attendance Compliance Report
                         <td>{{ row.expected_punches }}</td>
 
                         <td>{{ row.compliance }}%</td>
+                        <td>
+
+                            <a href="#"
+                            class="btn btn-sm btn-primary">
+
+                                View
+
+                            </a>
+
+                        </td>
 
                         <td>
 

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}
+Attendance Schedule Setup
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-primary text-white">
+
+        Attendance Schedule Setup
+
+    </div>
+
+    <div class="card-body">
+
+        <form method="POST">
+
+            <div class="row">
+
+                <div class="col-md-4 mb-3">
+
+                    <label>
+
+                        Project
+
+                    </label>
+
+                    <select
+                        name="unit_id"
+                        class="form-select"
+                        required>
+
+                        {% for unit in units %}
+
+                        <option
+                            value="{{ unit.id }}"
+
+                            {% if config and config.unit_id == unit.id %}
+                            selected
+                            {% endif %}
+                        >
+
+                            {{ unit.name }}
+
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-4 mb-3">
+
+                    <label>
+
+                        Total Checkpoints
+
+                    </label>
+
+                    <input
+                        type="number"
+                        name="total_checkpoints"
+                        class="form-control"
+                        min="1"
+                        value="{{ config.total_checkpoints if config else 8 }}"
+                        required>
+
+                </div>
+
+                <div class="col-md-4 mb-3">
+
+                    <label>
+
+                        Start Time
+
+                    </label>
+
+                    <input
+                        type="time"
+                        name="start_time"
+                        class="form-control"
+                        value="{{ config.start_time.strftime('%H:%M') if config else '' }}"
+                        required>
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+
+                    <label>
+
+                        Checkpoint Duration (Minutes)
+
+                    </label>
+
+                    <input
+                        type="number"
+                        name="checkpoint_duration"
+                        class="form-control"
+                        value="{{ config.checkpoint_duration if config else 20 }}"
+                        required>
+
+                </div>
+
+                <div class="col-md-6 mb-3">
+
+                    <label>
+                        Interval Between Checkpoint Starts (Minutes)
+                        <i class="bi bi-question-circle-fill text-primary"
+                        data-bs-toggle="tooltip"
+                        data-bs-placement="right"
+                        title="The number of minutes between the start of one checkpointA and the start of the next checkpointB. Example: 90 minutes means a checkpoint starting at 7:30 AM will be followed by the next checkpoint at 9:00 AM.">
+                        </i>
+
+                    </label>
+
+                    <input
+                        type="number"
+                        name="interval_minutes"
+                        class="form-control"
+                        value="{{ config.interval_minutes if config else 90 }}"
+                        required>
+
+                </div>
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-primary">
+
+                Save Configuration
+
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}
