@@ -234,6 +234,19 @@
                     </li>
 
                     {% if current_user.role == "superadmin" %}
+                    <li>
+
+                        <a
+                            class="dropdown-item"
+                            href="{{ url_for('main.all_history') }}">
+
+                            <i class="bi bi-clock-history"></i>
+
+                            BA Attendance History
+
+                        </a>
+
+                    </li>
 
                     <li>
 
@@ -258,19 +271,7 @@
 
         {% endif %}
 
-        <!-- ATTENDANCE -->
-
-        <li class="nav-item">
-
-            <a class="nav-link"
-               href="{{ url_for('main.my_attendance') }}">
-                <i class="bi bi-calendar-check"></i>
-
-                My Attendance
-
-            </a>
-
-        </li>
+        
         <li>
 
             <a
@@ -285,18 +286,7 @@
 
         </li>
 
-        <li class="nav-item">
-
-            <a class="nav-link"
-               href="{{ url_for('main.field_checkpoint') }}">
-
-                <i class="bi bi-pin-map-fill"></i>
-
-                Field Attendance
-
-            </a>
-
-        </li>
+        
         <li class="nav-item">
 
             <a class="nav-link"

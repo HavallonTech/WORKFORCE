@@ -8,73 +8,7 @@ Dashboard
 
 <div class="container-fluid">
 
-    <!-- WELCOME CARD -->
-
-    <div class="card shadow-sm mb-4">
-
-        <div class="card-body">
-
-            <div class="row align-items-center">
-
-                <div class="col-md-9">
-
-                    <h3>
-
-                        Welcome Back,
-
-                        {{ current_user.full_name }}
-
-                    </h3>
-
-                    <p class="text-muted mb-0">
-
-                        {{ current_user.department.name if current_user.department else '' }}
-
-                    </p>
-
-                    <p class="text-muted">
-
-                        {{ current_user.unit.name if current_user.unit else '' }}
-
-                    </p>
-
-                </div>
-
-                <div class="col-md-3 text-end">
-
-                    {% if current_user.profile_image %}
-
-                    <img
-                        src="{{ url_for(
-                            'static',
-                            filename='uploads/profiles/' ~ current_user.profile_image
-                        ) }}"
-                        class="rounded-circle border"
-                        style="
-                            width:120px;
-                            height:120px;
-                            object-fit:cover;
-                        ">
-
-                    {% else %}
-
-                    <i
-                        class="bi bi-person-circle"
-                        style="
-                            font-size:120px;
-                            color:#6c757d;
-                        ">
-                    </i>
-
-                    {% endif %}
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
+   
 
     <!-- KPI CARDS -->
 
@@ -223,129 +157,119 @@ Dashboard
 
     <div class="card shadow-sm mb-4">
 
-        <div class="card-header bg-success text-white">
+    <div class="card-header bg-success text-white">
 
-            Current Checkpoint
+        Active Checkpoint
 
-        </div>
+    </div>
 
-        <div class="card-body">
+    <div class="card-body">
 
-            {% if schedule %}
+        {% if schedule %}
 
-            <h4>
+            <h3>
 
-                Checkpoint
+                Checkpoint {{ schedule.checkpoint_number }}
 
-                {{ schedule.checkpoint_number }}
-
-            </h4>
+            </h3>
 
             <p>
 
-                Open:
+                Opens:
 
-                {{ schedule.start_time }}
+                {{ schedule.open_time.strftime('%I:%M %p') }}
 
             </p>
 
             <p>
 
-                Close:
+                Closes:
 
-                {{ schedule.end_time }}
+                {{ schedule.close_time.strftime('%I:%M %p') }}
 
             </p>
+
+            <div class="alert alert-success">
+
+                Checkpoint currently active
+
+            </div>
 
             <a
+
                 href="{{ url_for('main.dynamic_checkin') }}"
+
                 class="btn btn-success">
 
                 Check In Now
 
             </a>
 
-            {% else %}
+            {% if not break_used %}
 
-            <p class="text-muted">
+                <a
 
-                No active checkpoint currently.
+                    href="{{ url_for(
 
-            </p>
+                        'main.use_break',
+
+                        checkpoint_number=schedule.checkpoint_number
+
+                    ) }}"
+
+                    class="btn btn-warning"
+
+                    onclick="confirmBreak(event)">
+
+                    Use As Break
+
+                </a>
 
             {% endif %}
 
-        </div>
+        {% elif config %}
 
-    </div>
+            <div class="alert alert-warning">
 
-    <!-- TODAY ATTENDANCE -->
+                <i class="bi bi-clock-history"></i>
 
-    <div class="card shadow-sm mb-4">
+                You are currently outside an active checkpoint period.
 
-        <div class="card-header bg-info text-white">
-
-            Today's Attendance
-
-        </div>
-
-        <div class="card-body">
-
-            {% if today_attendance %}
-
-            <table class="table">
-
-                <tr>
-
-                    <th>Clock In</th>
-
-                    <td>
-
-                        {{ today_attendance.clock_in }}
-
-                    </td>
-
-                </tr>
-
-                <tr>
-
-                    <th>Clock Out</th>
-
-                    <td>
-
-                        {{ today_attendance.clock_out or '-' }}
-
-                    </td>
-
-                </tr>
-
-                <tr>
-
-                    <th>Status</th>
-
-                    <td>
-
-                        {{ today_attendance.status }}
-
-                    </td>
-
-                </tr>
-
-            </table>
-
-            {% else %}
+            </div>
 
             <p>
 
-                No attendance record for today.
+                Project configured with
+
+                <strong>
+
+                    {{ config.total_checkpoints }}
+
+                </strong>
+
+                checkpoints.
 
             </p>
 
-            {% endif %}
+            <p>
 
-        </div>
+                Please wait until the next checkpoint becomes active.
+
+            </p>
+
+        {% else %}
+
+            <div class="alert alert-danger">
+
+                Attendance schedule has not yet been configured.
+
+            </div>
+
+        {% endif %}
 
     </div>
+
+</div>
 
     <!-- RECENT CHECKPOINTS -->
 

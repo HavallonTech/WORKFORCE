@@ -1,4 +1,4 @@
-from flask import Blueprint, app, current_app, flash, render_template, request, redirect, url_for
+from flask import Blueprint, app, current_app, flash, jsonify, render_template, request, redirect, url_for
 from flask_login import current_user, login_user, login_required, logout_user
 from app.models import (
     Attendance,
@@ -80,38 +80,39 @@ def create_super_admin():
 @main.route("/", methods=["GET", "POST"])
 def login():
 
-    # User already logged in
     if current_user.is_authenticated:
-
-        return redirect(
-            url_for("main.dashboard")
-        )
+        return redirect(url_for("main.dashboard"))
 
     if request.method == "POST":
 
-        username = request.form.get(
-            "username"
-        )
-
-        password = request.form.get(
-            "password"
-        )
+        username = request.form.get("username")
+        password = request.form.get("password")
 
         user = User.query.filter_by(
             username=username
         ).first()
 
-        if user.must_change_password:
-
-            login_user(user)
-
-            return redirect(
-                url_for(
-                    "main.change_password"
-                )
+        if not user:
+            toast(
+                "Invalid username or password",
+                "danger"
+            )
+            return render_template(
+                "auth/login.html"
             )
 
-        if user and user.check_password(password):
+        # Verify password first
+        if user.check_password(password):
+
+            if user.must_change_password:
+
+                login_user(user)
+
+                return redirect(
+                    url_for(
+                        "main.change_password"
+                    )
+                )
 
             user.last_login = nigeria_now()
 
@@ -129,16 +130,15 @@ def login():
                 url_for("main.dashboard")
             )
 
-        else:
-
-            toast(
-                "Invalid username or password",
-                "danger"
-            )
+        toast(
+            "Invalid username or password",
+            "danger"
+        )
 
     return render_template(
         "auth/login.html"
     )
+
 
 @main.route("/dashboard")
 @login_required
@@ -147,7 +147,6 @@ def dashboard():
     if current_user.role in [
 
         "admin",
-
         "superadmin"
 
     ]:
@@ -239,25 +238,28 @@ def dashboard():
         attendance_date=today
 
     ).first()
+    has_active_checkpoint = (
+
+        schedule is not None
+
+    )
+    current_time = nigeria_now().strftime(
+        "%I:%M %p" )
 
     return render_template(
 
         "dashboard/index.html",
 
         compliance=compliance,
-
         completed_count=completed_count,
-
-        expected=expected,
-
-        remaining=remaining,
-
-        break_used=break_used,
-
+        current_time=current_time,
+        has_active_checkpoint=has_active_checkpoint,
+        config=config,
         schedule=schedule,
-
+        expected=expected,
+        remaining=remaining,
+        break_used=break_used,
         today_attendance=today_attendance,
-
         recent_attendance=recent_attendance
 
     )
@@ -706,11 +708,13 @@ def users():
         active_users=active_users,
         inactive_users=inactive_users
     )
+
 @main.route(
     "/users/add",
-    methods=["GET", "POST"]
+    methods=["GET","POST"]
 )
 @login_required
+@admin_required
 def add_user():
 
     units = Unit.query.filter_by(
@@ -722,130 +726,249 @@ def add_user():
     ).all()
 
     if request.method == "POST":
-        #######################################################################
-        #####################User Validation##################################
-        email = request.form.get("email").strip()
 
-        email_pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+        staff_id = request.form.get(
+            "staff_id",
+            ""
+        ).strip()
 
-        if not re.match(email_pattern, email):
+        username = request.form.get(
+            "username",
+            ""
+        ).strip()
+
+        email = request.form.get(
+            "email",
+            ""
+        ).strip().lower()
+
+        full_name = request.form.get(
+            "full_name",
+            ""
+        ).strip()
+
+        phone = request.form.get(
+            "phone",
+            ""
+        ).strip()
+
+        password = request.form.get(
+            "password"
+        )
+
+        confirm_password = request.form.get(
+            "confirm_password"
+        )
+
+        unit_id = request.form.get(
+            "unit_id"
+        )
+
+        department_id = request.form.get(
+            "department_id"
+        )
+
+        role = request.form.get(
+            "role"
+        )
+
+        existing_staff = User.query.filter_by(
+            staff_id=staff_id
+        ).first()
+
+        if existing_staff:
 
             toast(
-                "Please enter a valid email address",
+                "Staff ID already exists",
                 "warning"
             )
 
             return redirect(
-                url_for("main.add_user")
+                url_for(
+                    "main.add_user"
+                )
             )
 
         existing_username = User.query.filter_by(
-            username=request.form.get("username")
+            username=username
         ).first()
 
         if existing_username:
 
             toast(
+
                 "Username already exists",
                 "warning"
             )
 
             return redirect(
-                url_for("main.add_user")
+
+                url_for(
+
+                    "main.add_user"
+
+                )
+
             )
 
         existing_email = User.query.filter_by(
-            email=request.form.get("email")
+
+            email=email
+
         ).first()
 
         if existing_email:
-
             toast(
-                "Email already in use by another user",
+                "Email already in use",
                 "warning"
             )
+            #return redirect(
+                #url_for(
+                    #"main.add_user"
+                #)
+            #)
+        ##########################################################If email already exist ###########3
+        #email_pattern = r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
 
-            return redirect(
-                url_for("main.add_user")
-            )
+        #if not re.match(
 
-        if request.form.get("password") != request.form.get(
-            "confirm_password"
-        ):
+        #    email_pattern,
+
+        #    email
+        # ):
+
+            #toast(
+
+                #"Invalid email address",
+
+                #"warning"
+
+            #)
+
+            #return redirect(
+
+                #url_for(
+
+                    #"main.add_user"
+
+                #)
+
+            #)
+
+        if password != confirm_password:
 
             toast(
+
                 "Passwords do not match",
+
                 "warning"
+
             )
 
             return redirect(
-                url_for("main.add_user")
+
+                url_for(
+
+                    "main.add_user"
+
+                )
+
             )
-        #########################################################################
+
         user = User(
 
-            staff_id=request.form.get(
-                "staff_id"
-            ),
+            staff_id=staff_id,
 
-            full_name=request.form.get(
-                "full_name"
-            ),
+            username=username,
 
-            username=request.form.get(
-                "username"
-            ),
+            full_name=full_name,
 
-            email=request.form.get(
-                "email"
-            ),
+            email=email,
 
-            phone=request.form.get(
-                "phone"
-            ),
+            phone=phone,
 
-            unit_id=request.form.get(
-                "unit_id"
-            ),
+            unit_id=unit_id,
 
-            department_id=request.form.get(
-                "department_id"
-            ),
+            department_id=department_id,
 
-            role=request.form.get(
-                "role"
-            )
+            role=role
+
         )
 
         user.set_password(
-            request.form.get(
-                "password"
-            )
+
+            password
+
         )
 
-        db.session.add(user)
+        db.session.add(
 
-        db.session.commit()
+            user
+
+        )
+
+        try:
+
+            db.session.commit()
+
+        except Exception:
+
+            db.session.rollback()
+
+            toast(
+
+                "Database error while creating user",
+
+                "danger"
+
+            )
+
+            return redirect(
+
+                url_for(
+
+                    "main.add_user"
+
+                )
+
+            )
 
         log_audit(
+
             "Users",
+
             "Create User",
+
             f"Created user {user.username}"
+
         )
 
         toast(
+
             "User created successfully",
+
             "success"
+
         )
 
         return redirect(
-            url_for("main.users")
+
+            url_for(
+
+                "main.users"
+
+            )
+
         )
 
     return render_template(
+
         "users/add.html",
+
         units=units,
+
         departments=departments
+
     )
 
 ##################################Edit a User Route##########################################
@@ -6009,5 +6132,601 @@ def dashboard_export_pdf():
         ),
 
         mimetype="application/pdf"
+
+    )
+
+##############################BA Attaendance History########################################
+@main.route(
+    "/field-attendance-v2/all_history"
+)
+@login_required
+@admin_required
+def all_history():
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    page = request.args.get(
+
+        "page",
+
+        1,
+
+        type=int
+
+    )
+
+    records_query = db.session.query(
+
+        DynamicAttendance
+
+    ).join(
+
+        User,
+
+        User.id == DynamicAttendance.user_id
+
+    )
+
+    breaks_query = db.session.query(
+
+        AttendanceBreak
+
+    ).join(
+
+        User,
+
+        User.id == AttendanceBreak.user_id
+
+    )
+
+    if unit_id:
+
+        records_query = records_query.filter(
+
+            User.unit_id == unit_id
+
+        )
+
+        breaks_query = breaks_query.filter(
+
+            User.unit_id == unit_id
+
+        )
+
+    if user_id:
+
+        records_query = records_query.filter(
+
+            DynamicAttendance.user_id == user_id
+
+        )
+
+        breaks_query = breaks_query.filter(
+
+            AttendanceBreak.user_id == user_id
+
+        )
+
+    if start_date:
+
+        start_dt = datetime.strptime(
+
+            start_date,
+
+            "%Y-%m-%d"
+
+        ).date()
+
+        records_query = records_query.filter(
+
+            DynamicAttendance.attendance_date >= start_dt
+
+        )
+
+        breaks_query = breaks_query.filter(
+
+            AttendanceBreak.attendance_date >= start_dt
+
+        )
+
+    if end_date:
+
+        end_dt = datetime.strptime(
+
+            end_date,
+
+            "%Y-%m-%d"
+
+        ).date()
+
+        records_query = records_query.filter(
+
+            DynamicAttendance.attendance_date <= end_dt
+
+        )
+
+        breaks_query = breaks_query.filter(
+
+            AttendanceBreak.attendance_date <= end_dt
+
+        )
+
+    records = records_query.order_by(
+
+        DynamicAttendance.attendance_date.desc(),
+
+        DynamicAttendance.attendance_time.desc()
+
+    ).paginate(
+
+        page=page,
+
+        per_page=20,
+
+        error_out=False
+
+    )
+
+    breaks = breaks_query.order_by(
+
+        AttendanceBreak.attendance_date.desc()
+
+    ).all()
+
+    total_attendance = records.total
+
+    total_breaks = len(
+
+        breaks
+
+    )
+
+    projects = Unit.query.filter_by(
+
+        status=True
+
+    ).order_by(
+
+        Unit.name
+
+    ).all()
+
+    users_query = User.query.filter_by(
+
+        is_active_user=True
+
+    )
+
+    if unit_id:
+
+        users_query = users_query.filter(
+
+            User.unit_id == unit_id
+
+        )
+
+    users = users_query.order_by(
+
+        User.full_name
+
+    ).all()
+
+    log_audit(
+
+        "Field Attendance V2",
+
+        "History",
+
+        f"{current_user.username} viewed attendance history"
+
+    )
+
+    return render_template(
+
+        "field_attendance_v2/ba_history.html",
+
+        records=records,
+
+        breaks=breaks,
+
+        total_attendance=total_attendance,
+
+        total_breaks=total_breaks,
+
+        start_date=start_date,
+
+        end_date=end_date,
+
+        projects=projects,
+
+        users=users,
+
+        unit_id=unit_id,
+
+        user_id=user_id
+
+    )
+
+@main.route(
+
+    "/api/project_users/<int:unit_id>"
+
+)
+
+@login_required
+def project_users(unit_id):
+
+    users = User.query.filter_by(
+
+        unit_id=unit_id,
+
+        is_active_user=True
+
+    ).order_by(
+
+        User.full_name
+
+    ).all()
+
+    return jsonify([
+
+        {
+
+            "id": u.id,
+
+            "name": u.full_name
+
+        }
+
+        for u in users
+
+    ])
+
+####################################Export History to Excel########################################
+def build_history_queryset():
+
+    start_date = request.args.get(
+        "start_date"
+    )
+
+    end_date = request.args.get(
+        "end_date"
+    )
+
+    unit_id = request.args.get(
+        "unit_id"
+    )
+
+    user_id = request.args.get(
+        "user_id"
+    )
+
+    query = DynamicAttendance.query
+
+    if unit_id:
+
+        query = query.join(
+
+            User
+
+        ).filter(
+
+            User.unit_id == unit_id
+
+        )
+
+    if user_id:
+
+        query = query.filter(
+
+            DynamicAttendance.user_id == user_id
+
+        )
+
+    if start_date:
+
+        start_dt = datetime.strptime(
+
+            start_date,
+
+            "%Y-%m-%d"
+
+        ).date()
+
+        query = query.filter(
+
+            DynamicAttendance.attendance_date >= start_dt
+
+        )
+
+    if end_date:
+
+        end_dt = datetime.strptime(
+
+            end_date,
+
+            "%Y-%m-%d"
+
+        ).date()
+
+        query = query.filter(
+
+            DynamicAttendance.attendance_date <= end_dt
+
+        )
+
+    return query.order_by(
+
+        DynamicAttendance.attendance_date.desc(),
+
+        DynamicAttendance.attendance_time.desc()
+
+    )
+
+@main.route(
+    "/field-attendance-v2/history/excel"
+)
+@login_required
+@admin_required
+def export_history_excel():
+
+    records = build_history_queryset().all()
+
+    wb = Workbook()
+
+    ws = wb.active
+
+    ws.title = "Attendance"
+
+    headers = [
+
+        "Staff",
+
+        "Project",
+
+        "Date",
+
+        "Checkpoint",
+
+        "Time",
+
+        "Distance",
+
+        "Remarks"
+
+    ]
+
+    ws.append(
+
+        headers
+
+    )
+
+    for item in records:
+
+        ws.append([
+
+            item.users.full_name,
+
+            item.users.unit.name
+            if item.users.unit
+            else "",
+
+            str(
+
+                item.attendance_date
+
+            ),
+
+            item.checkpoint_number,
+
+            item.attendance_time.strftime(
+
+                '%I:%M %p'
+
+            ),
+
+            item.distance,
+
+            item.remarks
+
+        ])
+
+    output = BytesIO()
+
+    wb.save(
+
+        output
+
+    )
+
+    output.seek(
+
+        0
+
+    )
+
+    return send_file(
+
+        output,
+
+        as_attachment=True,
+
+        download_name=
+
+        "attendance.xlsx",
+
+        mimetype=
+
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    )
+
+@main.route(
+"/field-attendance-v2/history/pdf"
+)
+@login_required
+@admin_required
+def export_history_pdf():
+
+    records = build_history_queryset().all()
+
+    buffer = BytesIO()
+
+    doc = SimpleDocTemplate(
+
+        buffer,
+
+        pagesize=landscape(A4)
+
+    )
+
+    elements = []
+
+    data = [[
+
+        "Staff",
+
+        "Project",
+
+        "Date",
+
+        "CP",
+
+        "Time",
+
+        "Distance"
+
+    ]]
+
+    for item in records:
+
+        data.append([
+
+            item.users.full_name,
+
+            item.users.unit.name
+            if item.users.unit
+            else "",
+
+            str(
+
+                item.attendance_date
+
+            ),
+
+            item.checkpoint_number,
+
+            item.attendance_time.strftime(
+
+                '%I:%M %p'
+
+            ),
+
+            str(
+
+                item.distance
+
+            )
+
+        ])
+
+    table = Table(
+
+        data
+
+    )
+
+    table.setStyle(
+
+        TableStyle([
+
+            (
+
+                'BACKGROUND',
+
+                (0,0),
+
+                (-1,0),
+
+                colors.lightblue
+
+            ),
+
+            (
+
+                'GRID',
+
+                (0,0),
+
+                (-1,-1),
+
+                1,
+
+                colors.black
+
+            ),
+
+            (
+
+                'FONTSIZE',
+
+                (0,0),
+
+                (-1,-1),
+
+                8
+
+            )
+
+        ])
+
+    )
+
+    elements.append(
+
+        table
+
+    )
+
+    doc.build(
+
+        elements
+
+    )
+
+    buffer.seek(
+
+        0
+
+    )
+
+    return send_file(
+
+        buffer,
+
+        as_attachment=True,
+
+        download_name=
+
+        "attendance.pdf",
+
+        mimetype=
+
+        "application/pdf"
 
     )

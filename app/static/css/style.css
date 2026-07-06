@@ -287,3 +287,239 @@ body{
     font-size:.9rem;
 
 }
+/* ==========================================
+   BA HISTORY
+========================================== */
+
+.history-card{
+
+    border:none;
+
+    border-radius:14px;
+
+    overflow:hidden;
+
+}
+
+
+.history-header{
+
+    background:linear-gradient(
+        135deg,
+        #0d6efd,
+        #084298
+    );
+
+    color:white;
+
+    padding:14px 20px;
+
+}
+
+
+.history-summary{
+
+    border:none;
+
+    border-radius:12px;
+
+    transition:.3s;
+
+}
+
+
+.history-summary:hover{
+
+    transform:translateY(-3px);
+
+}
+
+
+.history-summary h2{
+
+    font-size:30px;
+
+    font-weight:700;
+
+}
+
+
+.history-summary small{
+
+    color:#6c757d;
+
+}
+
+
+.filter-card{
+
+    border:none;
+
+    border-radius:12px;
+
+}
+
+
+.filter-card label{
+
+    font-size:13px;
+
+    font-weight:600;
+
+    color:#495057;
+
+}
+
+
+.filter-card .form-control,
+
+.filter-card .form-select{
+
+    border-radius:8px;
+
+}
+
+
+.history-table{
+
+    font-size:13px;
+
+}
+
+
+.history-table thead{
+
+    background:#f8f9fa;
+
+}
+
+
+.history-table th{
+
+    font-size:12px;
+
+    text-transform:uppercase;
+
+    letter-spacing:.5px;
+
+    color:#6c757d;
+
+    border-bottom:2px solid #dee2e6;
+
+}
+
+
+.history-table td{
+
+    vertical-align:middle;
+
+}
+
+
+.staff-column{
+
+    width:17%;
+
+    font-size:13px;
+
+    font-weight:600;
+
+}
+
+
+.project-column{
+
+    width:13%;
+
+    font-size:12px;
+
+    color:#6c757d;
+
+}
+
+
+.distance-badge{
+
+    background:#e8f5e9;
+
+    color:#198754;
+
+    padding:4px 10px;
+
+    border-radius:30px;
+
+    font-size:12px;
+
+}
+
+
+.photo-btn{
+
+    padding:4px 10px;
+
+    font-size:12px;
+
+}
+
+
+.pagination .page-link{
+
+    border-radius:6px;
+
+    margin-right:4px;
+
+}
+
+
+.pagination .active .page-link{
+
+    background:#0d6efd;
+
+    border-color:#0d6efd;
+
+}
+
+
+.export-btn{
+
+    border-radius:8px;
+
+    font-size:13px;
+
+    padding:8px 14px;
+
+}
+
+
+.card-header-blue{
+
+    background:linear-gradient(
+
+        135deg,
+
+        #0d6efd,
+
+        #084298
+
+    );
+
+    color:white;
+
+}
+
+
+.card-header-green{
+
+    background:linear-gradient(
+
+        135deg,
+
+        #198754,
+
+        #146c43
+
+    );
+
+    color:white;
+
+}

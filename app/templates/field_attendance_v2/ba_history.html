@@ -1,0 +1,616 @@
+{% extends "base.html" %}
+
+{% block title %}
+BA Attendance History
+{% endblock %}
+
+{% block page_title %}
+BA Attendance History
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <!-- SUMMARY -->
+
+    <div class="row mb-4">
+
+        <div class="col-md-6">
+
+            <div class="card shadow-sm border-primary">
+
+                <div class="card-body">
+
+                    <h2>
+
+                        {{ total_attendance }}
+
+                    </h2>
+
+                    <small>
+
+                        Attendance Records
+
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-6">
+
+            <div class="card shadow-sm border-warning">
+
+                <div class="card-body">
+
+                    <h2>
+
+                        {{ total_breaks }}
+
+                    </h2>
+
+                    <small>
+
+                        Break Records
+
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FILTERS -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header bg-primary text-white">
+
+            Filters
+
+        </div>
+
+        <div class="card-body">
+
+            <form method="GET">
+
+                <div class="row">
+
+                    <div class="col-md-2">
+
+                        <label>
+
+                            Project
+
+                        </label>
+
+                        <select
+
+                            id="unit_id"
+
+                            name="unit_id"
+
+                            class="form-select">
+
+                            <option value="">
+
+                                All Projects
+
+                            </option>
+
+                            {% for project in projects %}
+
+                            <option
+
+                                value="{{ project.id }}"
+
+                                {% if unit_id == project.id|string %}
+
+                                selected
+
+                                {% endif %}>
+
+                                {{ project.name }}
+
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-md-2">
+
+                        <label>
+
+                            BA
+
+                        </label>
+
+                        <select
+
+                            id="user_id"
+
+                            name="user_id"
+
+                            class="form-select">
+
+                            <option value="">
+
+                                All BA's
+
+                            </option>
+
+                            {% for user in users %}
+
+                            <option
+
+                                value="{{ user.id }}"
+
+                                {% if user_id == user.id|string %}
+
+                                selected
+
+                                {% endif %}>
+
+                                {{ user.full_name }}
+
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-md-2">
+
+                        <label>
+
+                            Start Date
+
+                        </label>
+
+                        <input
+
+                            type="date"
+
+                            name="start_date"
+
+                            class="form-control"
+
+                            value="{{ start_date or '' }}">
+
+                    </div>
+
+
+                    <div class="col-md-2">
+
+                        <label>
+
+                            End Date
+
+                        </label>
+
+                        <input
+
+                            type="date"
+
+                            name="end_date"
+
+                            class="form-control"
+
+                            value="{{ end_date or '' }}">
+
+                    </div>
+
+
+                   <div class="col-md-4 d-flex align-items-end">
+
+                        <button
+                            class="btn btn-primary me-2">
+
+                            <i class="bi bi-search"></i>
+
+                            Filter
+
+                        </button>
+
+                        <a
+                            href="{{ url_for('main.all_history') }}"
+                            class="btn btn-secondary me-2">
+
+                            <i class="bi bi-arrow-clockwise"></i>
+
+                            Clear
+
+                        </a>
+
+
+                        <a
+
+                            href="{{ url_for(
+
+                                'main.export_history_excel',
+
+                                start_date=start_date,
+
+                                end_date=end_date,
+
+                                unit_id=unit_id,
+
+                                user_id=user_id
+
+                            ) }}"
+
+                            class="btn btn-success me-2">
+
+                            <i class="bi bi-file-earmark-excel"></i>
+
+                            Excel
+
+                        </a>
+
+
+                        <a
+
+                            href="{{ url_for(
+
+                                'main.export_history_pdf',
+
+                                start_date=start_date,
+
+                                end_date=end_date,
+
+                                unit_id=unit_id,
+
+                                user_id=user_id
+
+                            ) }}"
+
+                            class="btn btn-danger">
+
+                            <i class="bi bi-file-earmark-pdf"></i>
+
+                            PDF
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- ATTENDANCE -->
+
+    <div class="card shadow-sm">
+
+        <div class="card-header bg-success text-white">
+
+            Attendance Records
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table
+
+                    class="table table-hover table-striped">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+
+                                BA
+
+                            </th>
+
+                            <th>
+
+                                Project
+
+                            </th>
+
+                            <th>
+
+                                Date
+
+                            </th>
+
+                            <th>
+
+                                Checkpoint
+
+                            </th>
+
+                            <th>
+
+                                Time
+
+                            </th>
+
+                            <th>
+
+                                Distance
+
+                            </th>
+
+                            <th>
+
+                                Remarks
+
+                            </th>
+
+                            <th>
+
+                                Photo
+
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for item in records.items %}
+
+                        <tr>
+
+                            <td>
+
+                                {{ item.users.full_name }}
+
+                            </td>
+
+                            <td>
+
+                                {{ item.users.unit.name if item.users.unit else '' }}
+
+                            </td>
+
+                            <td>
+
+                                {{ item.attendance_date }}
+
+                            </td>
+
+                            <td>
+
+                                {{ item.checkpoint_number }}
+
+                            </td>
+
+                            <td>
+
+                                {{ item.attendance_time.strftime('%I:%M %p') }}
+
+                            </td>
+
+                            <td>
+
+                                {{ "%.2f"|format(item.distance or 0) }}
+
+                                m
+
+                            </td>
+
+                            <td>
+
+                                {{ item.remarks or "-" }}
+
+                            </td>
+
+                            <td>
+
+                                {% if item.photo %}
+
+                                <a
+
+                                    href="{{ url_for(
+
+                                        'static',
+
+                                        filename='uploads/dynamic_attendance/' ~ item.photo
+
+                                    ) }}"
+
+                                    target="_blank"
+
+                                    class="btn btn-sm btn-primary">
+
+                                    View
+
+                                </a>
+
+                                {% else %}
+
+                                -
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- Pagination -->
+
+            <nav>
+
+                <ul class="pagination justify-content-center">
+
+                    {% for p in records.iter_pages(
+
+                        left_edge=1,
+
+                        right_edge=1,
+
+                        left_current=2,
+
+                        right_current=2
+
+                    ) %}
+
+                    {% if p %}
+
+                    <li
+
+                        class="page-item
+
+                        {% if p == records.page %}
+
+                        active
+
+                        {% endif %}">
+
+                        <a
+
+                            class="page-link"
+
+                            href="{{ url_for(
+
+                                'main.all_history',
+
+                                page=p,
+
+                                start_date=start_date,
+
+                                end_date=end_date,
+
+                                unit_id=unit_id,
+
+                                user_id=user_id
+
+                            ) }}">
+
+                            {{ p }}
+
+                        </a>
+
+                    </li>
+
+                    {% endif %}
+
+                    {% endfor %}
+
+                </ul>
+
+            </nav>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+document.getElementById(
+
+    'unit_id'
+
+).addEventListener(
+
+    'change',
+
+    function(){
+
+        let unit = this.value;
+
+        let staff = document.getElementById(
+
+            'user_id'
+
+        );
+
+        staff.innerHTML =
+
+            '<option value="">All Staff</option>';
+
+        if(unit){
+
+            fetch(
+
+                '/api/project_users/' + unit
+
+            )
+
+            .then(
+
+                response => response.json()
+
+            )
+
+            .then(
+
+                data => {
+
+                    data.forEach(
+
+                        function(user){
+
+                            let option =
+
+                                document.createElement(
+
+                                    'option'
+
+                                );
+
+                            option.value = user.id;
+
+                            option.text = user.name;
+
+                            staff.appendChild(
+
+                                option
+
+                            );
+
+                        }
+
+                    );
+
+                }
+
+            );
+
+        }
+
+    }
+
+);
+
+</script>
+
+{% endblock %}
