@@ -1,17 +1,40 @@
 {% extends "base.html" %}
 
 {% block title %}
-Unit Locations
+Project Locations
 {% endblock %}
 
 {% block content %}
 
-<div class="d-flex justify-content-between mb-3">
+<div class="d-flex justify-content-between align-items-center mb-4">
 
-    <h3>Project Locations</h3>
+    <div>
 
-    <a href="{{ url_for('main.add_unit_location') }}"
-       class="btn btn-primary">
+        <h3>
+
+            Project Locations
+
+        </h3>
+
+        <small class="text-muted">
+
+            Manage attendance geofencing locations
+
+        </small>
+
+    </div>
+
+    <a
+
+        href="{{ url_for(
+
+            'main.add_unit_location'
+
+        ) }}"
+
+        class="btn btn-primary">
+
+        <i class="bi bi-plus-circle"></i>
 
         Add Location
 
@@ -19,90 +42,390 @@ Unit Locations
 
 </div>
 
+
+
+<div class="row mb-4">
+
+<div class="col-md-4">
+
 <div class="card shadow-sm">
 
-    <div class="card-body">
+<div class="card-body">
 
-        <table class="table table-hover">
+<h3>
 
-            <thead>
+{{ total_locations }}
 
-                <tr>
+</h3>
 
-                    <th>Project</th>
-                    <th>Location Name</th>
-                    <th>Coordinates</th>
-                    <th>Radius (m)</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+<small>
 
-                </tr>
+Total Locations
 
-            </thead>
+</small>
 
-            <tbody>
+</div>
 
-                {% for location in locations %}
+</div>
 
-                <tr>
+</div>
 
-                    <td>{{ location.unit.name }}</td>
 
-                    <td>{{ location.name }}</td>
 
-                    <td>{{ location.latitude }}, {{ location.longitude }}</td>
+<div class="col-md-4">
 
-                    <td>{{ location.radius }}</td>
+<div class="card shadow-sm border-success">
 
-                    <td>
+<div class="card-body">
 
-                        {% if location.status %}
+<h3>
 
-                            <span class="badge bg-success">
-                                Active
-                            </span>
+{{ active_locations }}
 
-                        {% else %}
+</h3>
 
-                            <span class="badge bg-danger">
-                                Inactive
-                            </span>
+<small>
 
-                        {% endif %}
+Active Locations
 
-                    </td>
+</small>
 
-                    <td>
+</div>
 
-                        <a href="{{ url_for('main.edit_unit_location', id=location.id) }}"
-                        class="btn btn-sm btn-primary">
+</div>
 
-                            Edit
+</div>
 
-                        </a>
 
-                        <a href="{{ url_for('main.toggle_unit_location', id=location.id) }}"
-                        class="btn btn-sm {% if location.status %}btn-warning{% else %}btn-success{% endif %}">
 
-                            {% if location.status %}
-                                Disable
-                            {% else %}
-                                Enable
-                            {% endif %}
+<div class="col-md-4">
 
-                        </a>
+<div class="card shadow-sm border-danger">
 
-                    </td>
+<div class="card-body">
 
-                </tr>
+<h3>
 
-                {% endfor %}
+{{ inactive_locations }}
 
-            </tbody>
+</h3>
 
-        </table>
+<small>
 
-    </div>
+Inactive Locations
+
+</small>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+
+<form method="GET">
+
+<div class="row mb-3">
+
+<div class="col-md-6">
+
+<input
+
+type="text"
+
+name="search"
+
+class="form-control"
+
+placeholder="Search Project or Location"
+
+value="{{ search }}">
+
+</div>
+
+
+<div class="col-md-2">
+
+<button
+
+class="btn btn-primary w-100">
+
+Search
+
+</button>
+
+</div>
+
+
+<div class="col-md-2">
+
+<a
+
+href="{{ url_for(
+
+'main.unit_locations'
+
+) }}"
+
+class="btn btn-secondary w-100">
+
+Reset
+
+</a>
+
+</div>
+
+</div>
+
+</form>
+
+
+<div class="table-responsive">
+
+<table class="table table-hover align-middle">
+
+<thead class="table-light">
+
+<tr>
+
+<th>
+
+Project
+
+</th>
+
+<th>
+
+Location
+
+</th>
+
+<th>
+
+Coordinates
+
+</th>
+
+<th>
+
+Radius
+
+</th>
+
+<th>
+
+Status
+
+</th>
+
+<th width="170">
+
+Actions
+
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+{% for location in locations %}
+
+<tr>
+
+<td>
+
+<strong>
+
+{{ location.unit.name }}
+
+</strong>
+
+</td>
+
+
+<td>
+
+{{ location.name }}
+
+</td>
+
+
+<td>
+
+<small>
+
+{{ location.latitude }},
+
+{{ location.longitude }}
+
+</small>
+
+</td>
+
+
+<td>
+
+{{ location.radius }}
+
+m
+
+</td>
+
+
+<td>
+
+{% if location.status %}
+
+<span class="badge bg-success">
+
+Active
+
+</span>
+
+{% else %}
+
+<span class="badge bg-danger">
+
+Inactive
+
+</span>
+
+{% endif %}
+
+</td>
+
+
+<td>
+
+    <a
+        href="{{ url_for(
+            'main.edit_unit_location',
+            id=location.id
+        ) }}"
+
+        class="btn btn-sm btn-warning"
+
+        data-bs-toggle="tooltip"
+
+        data-bs-placement="top"
+
+        title="Edit Location">
+
+        <i class="bi bi-pencil"></i>
+
+    </a>
+
+
+    <a
+
+        href="{{ url_for(
+
+            'main.toggle_unit_location',
+
+            id=location.id
+
+        ) }}"
+
+        class="btn btn-sm
+
+        {% if location.status %}
+
+            btn-secondary
+
+        {% else %}
+
+            btn-success
+
+        {% endif %}"
+
+        data-bs-toggle="tooltip"
+
+        data-bs-placement="top"
+
+        title="{% if location.status %}Deactivate Location{% else %}Activate Location{% endif %}">
+
+        {% if location.status %}
+
+            <i class="bi bi-pause-circle"></i>
+
+        {% else %}
+
+            <i class="bi bi-play-circle"></i>
+
+        {% endif %}
+
+    </a>
+
+</td>
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+
+<nav>
+
+<ul class="pagination justify-content-end">
+
+{% for p in pagination.iter_pages() %}
+
+{% if p %}
+
+<li class="page-item
+
+{% if p == pagination.page %}
+
+active
+
+{% endif %}">
+
+<a
+
+class="page-link"
+
+href="{{ url_for(
+
+'main.unit_locations',
+
+page=p,
+
+search=search
+
+) }}">
+
+{{ p }}
+
+</a>
+
+</li>
+
+{% endif %}
+
+{% endfor %}
+
+</ul>
+
+</nav>
+
+
+</div>
 
 </div>
 
