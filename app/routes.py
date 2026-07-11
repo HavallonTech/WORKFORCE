@@ -8,6 +8,7 @@ from app.models import (
     DynamicAttendance, AttendanceBreak)
 from app import db
 from app.helpers import toast
+from sqlalchemy import or_
 from app.utils.audit import log_audit
 import re
 from datetime import (
@@ -38,7 +39,7 @@ from reportlab.platypus import (
     Paragraph,
     Spacer
 )
-
+from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib import colors
 
 from flask import send_file
@@ -266,17 +267,112 @@ def dashboard():
 
 @main.route("/units")
 @login_required
+@admin_required
 def units():
 
-    units = Unit.query.order_by(Unit.name).all()
+    search = request.args.get(
 
-    return render_template(
-        "units/list.html",
-        units=units
+        "search",
+
+        ""
+
+    ).strip()
+
+    page = request.args.get(
+
+        "page",
+
+        1,
+
+        type=int
+
     )
+
+    query = Unit.query
+
+    if search:
+
+        query = query.filter(
+
+            db.or_(
+
+                Unit.name.ilike(
+
+                    f"%{search}%"
+
+                ),
+
+                Unit.code.ilike(
+
+                    f"%{search}%"
+
+                ),
+
+                Unit.phone.ilike(
+
+                    f"%{search}%"
+
+                ),
+
+                Unit.email.ilike(
+
+                    f"%{search}%"
+
+                )
+
+            )
+
+        )
+
+    pagination = query.order_by(
+
+        Unit.name
+
+    ).paginate(
+
+        page=page,
+
+        per_page=15,
+
+        error_out=False
+
+    )
+
+    total_projects = Unit.query.count()
+
+    active_projects = Unit.query.filter_by(
+
+        status=True
+
+    ).count()
+
+    inactive_projects = Unit.query.filter_by(
+
+        status=False
+
+    ).count()
+    return render_template(
+
+        "units/list.html",
+
+        pagination=pagination,
+
+        projects=pagination.items,
+
+        search=search,
+
+        total_projects=total_projects,
+
+        active_projects=active_projects,
+
+        inactive_projects=inactive_projects
+
+    )
+
 
 @main.route("/units/add", methods=["GET", "POST"])
 @login_required
+@admin_required
 def add_unit():
 
 
@@ -326,6 +422,7 @@ def add_unit():
 
 @main.route("/units/edit/<int:id>", methods=["GET", "POST"])
 @login_required
+@admin_required
 def edit_unit(id):
 
     unit = Unit.query.get_or_404(id)
@@ -372,29 +469,122 @@ def test_toast():
         url_for("main.dashboard")
     )
 
+
 @main.route("/unit-locations")
 @login_required
+@admin_required
 def unit_locations():
 
-    locations = UnitLocation.query.order_by(
+    search = request.args.get(
+
+        "search",
+
+        ""
+
+    ).strip()
+
+    page = request.args.get(
+
+        "page",
+
+        1,
+
+        type=int
+
+    )
+
+    query = UnitLocation.query.join(
+
+        Unit
+
+    )
+
+    if search:
+
+        query = query.filter(
+
+            or_(
+
+                Unit.name.ilike(
+
+                    f"%{search}%"
+
+                ),
+
+                UnitLocation.name.ilike(
+
+                    f"%{search}%"
+
+                ),
+
+                UnitLocation.latitude.cast(
+
+                    db.String
+
+                ).ilike(
+
+                    f"%{search}%"
+
+                ),
+
+                UnitLocation.longitude.cast(
+
+                    db.String
+
+                ).ilike(
+
+                    f"%{search}%"
+
+                )
+
+            )
+
+        )
+
+    pagination = query.order_by(
+
         UnitLocation.id.desc()
-    ).all()
+
+    ).paginate(
+
+        page=page,
+
+        per_page=15,
+
+        error_out=False
+
+    )
+
     total_locations = UnitLocation.query.count()
 
     active_locations = UnitLocation.query.filter_by(
+
         status=True
+
     ).count()
 
     inactive_locations = UnitLocation.query.filter_by(
+
         status=False
+
     ).count()
 
     return render_template(
+
         "unit_locations/list.html",
-        locations=locations,
+
+        locations=pagination.items,
+
+        pagination=pagination,
+
+        search=search,
+
         total_locations=total_locations,
+
         active_locations=active_locations,
+
         inactive_locations=inactive_locations
+
     )
 
 @main.route(
