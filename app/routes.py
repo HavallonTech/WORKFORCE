@@ -1,4 +1,4 @@
-from flask import Blueprint, app, current_app, flash, jsonify, render_template, request, redirect, url_for
+from flask import Blueprint, app, current_app, flash, jsonify, render_template, request, redirect, url_for, after_this_request
 from flask_login import current_user, login_user, login_required, logout_user
 from app.models import (
     Attendance,
@@ -7087,7 +7087,7 @@ def import_users():
         "users/import.html"
     )
 
-
+import tempfile
 @main.route("/users/download-template")
 @login_required
 @admin_required
@@ -7123,18 +7123,16 @@ def download_user_template():
     )
 
     for col, header in enumerate(headers, start=1):
-
         cell = ws.cell(row=1, column=col)
-
         cell.value = header
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center")
 
-    # Freeze header
+    # Freeze Header
     ws.freeze_panes = "A2"
 
-    # Filter
+    # Auto Filter
     ws.auto_filter.ref = "A1:G500"
 
     # Sample Row
@@ -7166,12 +7164,14 @@ def download_user_template():
     # Projects Sheet
     # ===========================
     project_sheet = wb.create_sheet("Projects")
-
     project_sheet.append(["Available Projects"])
 
-    projects = Unit.query.filter_by(status=True)\
-                         .order_by(Unit.name)\
-                         .all()
+    projects = (
+        Unit.query
+        .filter_by(status=True)
+        .order_by(Unit.name)
+        .all()
+    )
 
     for project in projects:
         project_sheet.append([project.name])
@@ -7180,12 +7180,14 @@ def download_user_template():
     # Departments Sheet
     # ===========================
     dept_sheet = wb.create_sheet("Departments")
-
     dept_sheet.append(["Available Departments"])
 
-    departments = Department.query.filter_by(status=True)\
-                                  .order_by(Department.name)\
-                                  .all()
+    departments = (
+        Department.query
+        .filter_by(status=True)
+        .order_by(Department.name)
+        .all()
+    )
 
     for dept in departments:
         dept_sheet.append([dept.name])
@@ -7194,7 +7196,6 @@ def download_user_template():
     # Roles Sheet
     # ===========================
     role_sheet = wb.create_sheet("Roles")
-
     role_sheet.append(["Available Roles"])
 
     roles = [
@@ -7208,7 +7209,7 @@ def download_user_template():
         role_sheet.append([role])
 
     # ===========================
-    # Excel Drop-down Lists
+    # Drop-down Lists
     # ===========================
     project_validation = DataValidation(
         type="list",
@@ -7237,16 +7238,23 @@ def download_user_template():
     role_validation.add("G2:G500")
 
     # ===========================
-    # Download Workbook
+    # Save to Temporary File
     # ===========================
-    output = BytesIO()
+    fd, temp_path = tempfile.mkstemp(suffix=".xlsx")
+    os.close(fd)
 
-    wb.save(output)
+    wb.save(temp_path)
 
-    output.seek(0)
+    @after_this_request
+    def cleanup(response):
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
+        return response
 
     return send_file(
-        output,
+        temp_path,
         as_attachment=True,
         download_name="WorkForce_User_Import_Template.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
