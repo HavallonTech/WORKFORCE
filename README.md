@@ -10,6 +10,13 @@ Modular structure ready for Attendance, GPS Tracking, Leave Management, etc.
 
 Username: superadmin
 Password: Admin@123
+bthddzow_workforceport
+bthddzow_kplanet_1
++gz9K?KTZkj;y=X2
+
+Live Server
+superadmin
+Admin@123
 
 python -m pip install pandas openpyxl reportlab
 
