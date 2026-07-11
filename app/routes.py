@@ -7,7 +7,7 @@ from app.models import (
     AuditLog, Department, User, Unit, FieldAttendance, UnitLocation, AttendanceScheduleConfig,
     DynamicAttendance, AttendanceBreak)
 from app import db
-from app.helpers import toast
+from app.helpers import toast, generate_staff_id
 from sqlalchemy import or_
 from app.utils.audit import log_audit
 import re
@@ -16,7 +16,12 @@ from datetime import (
     timedelta,
     date
 )
-from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.worksheet.datavalidation import DataValidation
+from werkzeug.utils import secure_filename
+
+
+from openpyxl import Workbook, load_workbook
 import math
 from app.utils.timezone import nigeria_now
 import os
@@ -1441,9 +1446,6 @@ def profile():
         )
 
         if file and file.filename:
-
-            from werkzeug.utils import secure_filename
-
             extension = file.filename.rsplit(
                 ".",
                 1
@@ -6919,4 +6921,333 @@ def export_history_pdf():
 
         "application/pdf"
 
+    )
+
+@main.route("/users/import", methods=["GET", "POST"])
+@login_required
+@admin_required
+def import_users():
+
+    if request.method == "POST":
+
+        if "excel_file" not in request.files:
+
+            toast("Please select an Excel file.", "warning")
+            return redirect(url_for("main.import_users"))
+
+        file = request.files["excel_file"]
+
+        if file.filename == "":
+
+            toast("Please select an Excel file.", "warning")
+            return redirect(url_for("main.import_users"))
+
+        try:
+
+            workbook = load_workbook(file)
+            sheet = workbook["User Import"]
+
+        #except Exception:
+
+            #toast("Invalid Excel template.", "danger")
+            #return redirect(url_for("main.import_users"))
+        except Exception as e:
+
+            toast(str(e), "danger")
+
+            print(e)
+
+            return redirect(url_for("main.import_users"))
+
+        imported = 0
+        skipped = 0
+        errors = []
+
+        for row_number, row in enumerate(
+                sheet.iter_rows(min_row=2, values_only=True),
+                start=2):
+
+            # Skip completely empty rows
+            if not any(row):
+                continue
+
+            full_name = str(row[0]).strip() if row[0] else ""
+            username = str(row[1]).strip().lower() if row[1] else ""
+            email = str(row[2]).strip().lower() if row[2] else ""
+            phone = str(row[3]).strip() if row[3] else ""
+            project_name = str(row[4]).strip() if row[4] else ""
+            department_name = str(row[5]).strip() if row[5] else ""
+            role = str(row[6]).strip().lower() if row[6] else "staff"
+
+            # ==========================
+            # Validation
+            # ==========================
+
+            if full_name == "":
+                skipped += 1
+                errors.append(f"Row {row_number}: Full Name is missing.")
+                continue
+
+            if username == "":
+                skipped += 1
+                errors.append(f"Row {row_number}: Username is missing.")
+                continue
+
+            if User.query.filter_by(username=username).first():
+
+                skipped += 1
+                errors.append(
+                    f"Row {row_number}: Username '{username}' already exists."
+                )
+                continue
+
+            unit = Unit.query.filter_by(
+                name=project_name
+            ).first()
+
+            if not unit:
+
+                skipped += 1
+                errors.append(
+                    f"Row {row_number}: Project '{project_name}' not found."
+                )
+                continue
+
+            department = Department.query.filter_by(
+                name=department_name
+            ).first()
+
+            if not department:
+
+                skipped += 1
+                errors.append(
+                    f"Row {row_number}: Department '{department_name}' not found."
+                )
+                continue
+
+            staff_id = generate_staff_id()
+
+            user = User(
+
+                staff_id=staff_id,
+
+                full_name=full_name,
+
+                username=username,
+
+                email=email,
+
+                phone=phone,
+
+                unit_id=unit.id,
+
+                department_id=department.id,
+
+                role=role
+
+            )
+
+            user.set_password("12345")
+
+            db.session.add(user)
+
+            imported += 1
+
+        try:
+
+            db.session.commit()
+
+        except Exception as e:
+
+            db.session.rollback()
+
+            toast(
+                f"Database Error: {e}",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.import_users")
+            )
+
+        log_audit(
+            "Users",
+            "Bulk Import",
+            f"Imported {imported} users"
+        )
+
+        return render_template(
+            "users/import.html",
+            imported=imported,
+            skipped=skipped,
+            errors=errors
+        )
+
+    return render_template(
+        "users/import.html"
+    )
+
+
+@main.route("/users/download-template")
+@login_required
+@admin_required
+def download_user_template():
+
+    wb = Workbook()
+
+    # ===========================
+    # User Import Sheet
+    # ===========================
+    ws = wb.active
+    ws.title = "User Import"
+
+    headers = [
+        "Full Name",
+        "Username",
+        "Email",
+        "Phone",
+        "Project",
+        "Department",
+        "Role"
+    ]
+
+    header_fill = PatternFill(
+        fill_type="solid",
+        start_color="1F4E78",
+        end_color="1F4E78"
+    )
+
+    header_font = Font(
+        bold=True,
+        color="FFFFFF"
+    )
+
+    for col, header in enumerate(headers, start=1):
+
+        cell = ws.cell(row=1, column=col)
+
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
+
+    # Freeze header
+    ws.freeze_panes = "A2"
+
+    # Filter
+    ws.auto_filter.ref = "A1:G500"
+
+    # Sample Row
+    ws.append([
+        "John Doe",
+        "jdoe",
+        "john@example.com",
+        "08031234567",
+        "",
+        "",
+        ""
+    ])
+
+    # Column Widths
+    widths = {
+        "A": 30,
+        "B": 20,
+        "C": 35,
+        "D": 18,
+        "E": 25,
+        "F": 25,
+        "G": 20
+    }
+
+    for column, width in widths.items():
+        ws.column_dimensions[column].width = width
+
+    # ===========================
+    # Projects Sheet
+    # ===========================
+    project_sheet = wb.create_sheet("Projects")
+
+    project_sheet.append(["Available Projects"])
+
+    projects = Unit.query.filter_by(status=True)\
+                         .order_by(Unit.name)\
+                         .all()
+
+    for project in projects:
+        project_sheet.append([project.name])
+
+    # ===========================
+    # Departments Sheet
+    # ===========================
+    dept_sheet = wb.create_sheet("Departments")
+
+    dept_sheet.append(["Available Departments"])
+
+    departments = Department.query.filter_by(status=True)\
+                                  .order_by(Department.name)\
+                                  .all()
+
+    for dept in departments:
+        dept_sheet.append([dept.name])
+
+    # ===========================
+    # Roles Sheet
+    # ===========================
+    role_sheet = wb.create_sheet("Roles")
+
+    role_sheet.append(["Available Roles"])
+
+    roles = [
+        "superadmin",
+        "admin",
+        "supervisor",
+        "staff"
+    ]
+
+    for role in roles:
+        role_sheet.append([role])
+
+    # ===========================
+    # Excel Drop-down Lists
+    # ===========================
+    project_validation = DataValidation(
+        type="list",
+        formula1="=Projects!$A$2:$A$500",
+        allow_blank=False
+    )
+
+    department_validation = DataValidation(
+        type="list",
+        formula1="=Departments!$A$2:$A$500",
+        allow_blank=False
+    )
+
+    role_validation = DataValidation(
+        type="list",
+        formula1="=Roles!$A$2:$A$5",
+        allow_blank=False
+    )
+
+    ws.add_data_validation(project_validation)
+    ws.add_data_validation(department_validation)
+    ws.add_data_validation(role_validation)
+
+    project_validation.add("E2:E500")
+    department_validation.add("F2:F500")
+    role_validation.add("G2:G500")
+
+    # ===========================
+    # Download Workbook
+    # ===========================
+    output = BytesIO()
+
+    wb.save(output)
+
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="WorkForce_User_Import_Template.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}
+Bulk User Import
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card shadow">
+
+                <div class="card-header bg-success text-white">
+
+                    <h4 class="mb-0">
+
+                        <i class="bi bi-upload"></i>
+
+                        Bulk User Import
+
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="alert alert-info">
+
+                        <h6>
+                            Import Instructions
+                        </h6>
+
+                        <ol class="mb-0">
+
+                            <li>Download the Excel template.</li>
+
+                            <li>Fill in all staff information.</li>
+
+                            <li>Do not change the column names.</li>
+
+                            <li>Upload the completed file.</li>
+
+                        </ol>
+
+                    </div>
+
+                    <div class="mb-4">
+
+                        <a href="{{ url_for('main.download_user_template') }}"
+                           class="btn btn-outline-success">
+
+                            <i class="bi bi-download"></i>
+
+                            Download Excel Template
+
+                        </a>
+
+                    </div>
+
+                    <form method="POST"
+                          enctype="multipart/form-data">
+
+                        <div class="mb-4">
+
+                            <label class="form-label">
+
+                                Select Excel File
+
+                            </label>
+
+                            <input
+                                type="file"
+                                name="excel_file"
+                                class="form-control"
+                                accept=".xlsx,.xls"
+                                required>
+
+                        </div>
+
+                        <div class="form-check mb-4">
+
+                            <input
+                                class="form-check-input"
+                                type="checkbox"
+                                checked
+                                disabled>
+
+                            <label class="form-check-label">
+
+                                Validate all records before importing
+
+                            </label>
+
+                        </div>
+
+                        <button
+                            class="btn btn-success btn-lg">
+
+                            <i class="bi bi-cloud-upload"></i>
+
+                            Import Users
+
+                        </button>
+
+                        <a href="{{ url_for('main.users') }}"
+                           class="btn btn-secondary btn-lg">
+
+                            Cancel
+
+                        </a>
+
+                    </form>
+                    {% if imported is defined %}
+
+<hr>
+
+<div class="alert alert-success">
+
+    <h5>Import Completed</h5>
+
+    <p><strong>Imported:</strong> {{ imported }}</p>
+
+    <p><strong>Skipped:</strong> {{ skipped }}</p>
+
+</div>
+
+{% if errors %}
+
+<div class="card">
+
+    <div class="card-header bg-danger text-white">
+
+        Import Errors
+
+    </div>
+
+    <div class="card-body">
+
+        <ul>
+
+            {% for error in errors %}
+
+            <li>{{ error }}</li>
+
+            {% endfor %}
+
+        </ul>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+{% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
